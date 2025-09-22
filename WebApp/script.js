@@ -1092,3 +1092,144 @@
 
     return main;
 }
+function renderMap() {
+    const main = document.createElement('main');
+    main.className = 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8';
+    main.innerHTML = `
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-900">Live Monitoring Map</h2>
+            <p class="text-gray-600">Real-time view of sensors, incidents, and community watch activities</p>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <h3 class="text-xl font-semibold text-gray-900">Tshwane Infrastructure Map</h3>
+                <div class="flex flex-wrap gap-2">
+                    <button class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium flex items-center">
+                        <div class="w-3 h-3 bg-blue-600 rounded-full mr-2"></div>
+                        Active Sensors
+                    </button>
+                    <button class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium flex items-center">
+                        <div class="w-3 h-3 bg-red-600 rounded-full mr-2"></div>
+                        Active Incidents
+                    </button>
+                    <button class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium flex items-center">
+                        <div class="w-3 h-3 bg-green-600 rounded-full mr-2"></div>
+                        Patrols
+                    </button>
+                    <button class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium flex items-center">
+                        <div class="w-3 h-3 bg-purple-600 rounded-full mr-2"></div>
+                        Watch Groups
+                    </button>
+                </div>
+            </div>
+
+            <div id="map" class="rounded-lg mb-4"></div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex items-center mb-2">
+                        <div class="bg-blue-600 p-2 rounded-lg mr-3">
+                            <i data-lucide="radio" class="h-5 w-5 text-white"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-900">143 Sensors Active</h4>
+                            <p class="text-sm text-gray-600">4 offline</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div class="flex items-center mb-2">
+                        <div class="bg-red-600 p-2 rounded-lg mr-3">
+                            <i data-lucide="alert-triangle" class="h-5 w-5 text-white"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-900">2 Active Incidents</h4>
+                            <p class="text-sm text-gray-600">Response in progress</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div class="flex items-center mb-2">
+                        <div class="bg-green-600 p-2 rounded-lg mr-3">
+                            <i data-lucide="users" class="h-5 w-5 text-white"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-900">8 Active Patrols</h4>
+                            <p class="text-sm text-gray-600">In your area</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- ... rest of the content ... -->
+        </div>
+    `;
+
+    // Now, we'll initialize the map after the element is added to the DOM
+    setTimeout(() => {
+        const map = L.map('map').setView([-25.7459, 28.2372], 13); // Centered around Tshwane
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Add markers for incidents
+        incidents.forEach(incident => {
+            const marker = L.marker([incident.lat, incident.lng]).addTo(map);
+            marker.bindPopup(`
+                <strong>${incident.description}</strong><br>
+                Location: ${incident.location}<br>
+                Type: ${incident.type}
+            `);
+        });
+
+        // You can also add circle markers for sensors, etc.
+    }, 0);
+
+    return main;
+}
+function renderReport() {
+    const main = document.createElement('main');
+    main.className = 'max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8';
+    main.innerHTML = `
+        <!-- ... other content ... -->
+        <form id="reportForm" class="space-y-4">
+            <!-- ... form fields ... -->
+        </form>
+        <!-- ... -->
+    `;
+
+    // After adding the form, attach the event listener
+    setTimeout(() => {
+        const form = document.getElementById('reportForm');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            // Collect form data
+            const formData = new FormData(form);
+            const reportData = {
+                reportType: formData.get('reportType'),
+                location: formData.get('location'),
+                report: formData.get('description'),
+                name: formData.get('name'),
+                email: formData.get('email'),
+                anon: formData.get('anonymous') ? 'yes' : 'no'
+            };
+
+            const result = await EndUser.submitReport(reportData);
+            if (result.success) {
+                alert('Report submitted successfully!');
+                form.reset();
+            } else {
+                alert('Error: ' + result.error);
+            }
+        });
+    }, 0);
+
+    return main;
+}
+

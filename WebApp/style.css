@@ -998,7 +998,29 @@
                 padding-right: 2rem;
             }
         }
-        /* Add these to the end of style.css */
+        #map {
+            height: 400px;
+            width: 100%;
+        }
+        @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+/* Add hover effects for buttons */
+.btn {
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+/* Add these to the end of style.css */
 
 /* Keyframe animations */
 @keyframes fadeIn {
@@ -1096,26 +1118,4 @@
   100% {
     background-position: 0% 50%;
   }
-}
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-.fade-in {
-    animation: fadeIn 0.5s ease-in;
-}
-
-/* Add hover effects for buttons */
-.btn {
-    transition: all 0.3s ease;
-}
-
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-#map {
-    height: 400px;
-    width: 100%;
 }
