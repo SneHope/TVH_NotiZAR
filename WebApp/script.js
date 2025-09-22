@@ -1,1235 +1,424 @@
-        // State management
-        let activeView = 'home';
-        
-        // Data
-        const recentActivity = [
-            {
-                id: 1,
-                type: 'sensor_alert',
-                location: 'Hatfield Area',
-                time: '15 minutes ago',
-                status: 'resolved',
-                message: 'Sensor tampering detected - Police dispatched and situation resolved'
-            },
-            {
-                id: 2,
-                type: 'community_report',
-                location: 'Sunnyside',
-                time: '1 hour ago',
-                status: 'investigating',
-                message: 'Suspicious vehicle spotted near electrical infrastructure'
-            },
-            {
-                id: 3,
-                type: 'prevention',
-                location: 'Brooklyn',
-                time: '3 hours ago',
-                status: 'prevented',
-                message: 'Community alert scared off potential cable thieves'
-            }
-        ];
+// script.js - Enhanced with form-to-map functionality
+let activeView = 'home';
+let map = null;
+let markers = [];
+let reports = [];
 
-        const watchGroups = [
-            { name: 'Hatfield Neighbourhood Watch', members: 234, active: true },
-            { name: 'Sunnyside Community Guard', members: 187, active: true },
-            { name: 'Brooklyn Safety Network', members: 156, active: false },
-            { name: 'Arcadia Protection Team', members: 203, active: true }
-        ];
+// Sample data
+const recentActivity = [
+    { id: 1, type: 'sensor_alert', location: 'Hatfield Area', time: '15 minutes ago', status: 'resolved', message: 'Sensor tampering detected' },
+    { id: 2, type: 'community_report', location: 'Sunnyside', time: '1 hour ago', status: 'investigating', message: 'Suspicious vehicle spotted' }
+];
 
-        const incidents = [
-            { id: '1', type: 'active', location: 'Hatfield', lat: 25.7459, lng: 28.2372, description: 'Cable theft in progress' },
-            { id: '2', type: 'resolved', location: 'Sunnyside', lat: 25.7358, lng: 28.2293, description: 'Sensor alert - resolved' },
-            { id: '3', type: 'investigating', location: 'Brooklyn', lat: 25.7517, lng: 28.2314, description: 'Suspicious activity reported' }
-        ];
+const watchGroups = [
+    { name: 'Hatfield Neighbourhood Watch', members: 234, active: true },
+    { name: 'Sunnyside Community Guard', members: 187, active: true }
+];
 
-        const recentIncidents = [
-            {
-                id: 'CG-2025-0147',
-                type: 'Cable Theft',
-                location: 'Hatfield, University Road',
-                status: 'resolved',
-                priority: 'high',
-                timestamp: '2025-01-21 14:30',
-                responseTime: '8 minutes'
-            },
-            {
-                id: 'CG-2025-0146',
-                type: 'Suspicious Activity',
-                location: 'Sunnyside, Esselen Street',
-                status: 'investigating',
-                priority: 'medium',
-                timestamp: '2025-01-21 13:15',
-                responseTime: '12 minutes'
-            },
-            {
-                id: 'CG-2025-0145',
-                type: 'Sensor Alert',
-                location: 'Brooklyn, Bronkhorst Street',
-                status: 'resolved',
-                priority: 'high',
-                timestamp: '2025-01-21 11:45',
-                responseTime: '6 minutes'
-            }
-        ];
+// Initialize the app
+document.addEventListener('DOMContentLoaded', () => {
+    render();
+    initializeMap();
+});
 
-        const sensorStatus = [
-            { zone: 'Hatfield', total: 45, active: 44, offline: 1, alerts: 2 },
-            { zone: 'Sunnyside', total: 38, active: 36, offline: 2, alerts: 1 },
-            { zone: 'Brooklyn', total: 42, active: 42, offline: 0, alerts: 0 },
-            { zone: 'Arcadia', total: 22, active: 21, offline: 1, alerts: 1 }
-        ];
+function navigateTo(view) {
+    activeView = view;
+    render();
+    if (view === 'map') {
+        setTimeout(initializeMap, 100);
+    }
+}
 
-        // Utility functions
-        function navigateTo(view) {
-            activeView = view;
-            render();
-        }
+function renderHeader() {
+    return `
+        <header class="header">
+            <div class="container header-content">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <i data-lucide="shield" class="text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg">NotiZAR</h1>
+                        <p class="text-sm">Community Protection</p>
+                    </div>
+                </div>
+                <nav class="nav">
+                    <button onclick="navigateTo('home')" class="btn ${activeView === 'home' ? 'btn-primary' : ''}">
+                        <i data-lucide="home"></i>Home
+                    </button>
+                    <button onclick="navigateTo('report')" class="btn ${activeView === 'report' ? 'btn-danger' : ''}">
+                        <i data-lucide="alert-triangle"></i>Report
+                    </button>
+                    <button onclick="navigateTo('map')" class="btn ${activeView === 'map' ? 'btn-primary' : ''}">
+                        <i data-lucide="map"></i>Live Map
+                    </button>
+                </nav>
+            </div>
+        </header>
+    `;
+}
 
-        function renderHeader() {
-            const header = document.createElement('header');
-            header.className = 'bg-white shadow-lg border-b border-gray-200';
-            header.innerHTML = `
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div class="flex justify-between items-center h-16">
-                        <div class="flex items-center space-x-3">
-                            <div class="bg-blue-600 p-2 rounded-lg">
-                                <i data-lucide="shield" class="h-8 w-8 text-white"></i>
-                            </div>
-                            <div>
-                                <h1 class="text-xl font-bold text-gray-900">CableGuard</h1>
-                                <p class="text-sm text-gray-600">Smart Community Protection</p>
-                            </div>
+function renderFooter() {
+    return `
+        <footer class="footer">
+            <div class="container footer-content">
+                <div>
+                    <h3 class="text-lg">NotiZAR</h3>
+                    <p>Community Protection System</p>
+                    <div class="flex gap-sm m-md">
+                        <button class="btn btn-danger">Emergency: 10177</button>
+                        <button class="btn">Report Non-Emergency</button>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="text-lg">Quick Links</h4>
+                    <div class="flex flex-col gap-sm">
+                        <a href="#" class="text-sm">Report Emergency</a>
+                        <a href="#" class="text-sm">Community Watch</a>
+                        <a href="#" class="text-sm">Safety Tips</a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    `;
+}
+
+function renderHome() {
+    return `
+        <main class="container p-lg">
+            <div class="card">
+                <h2 class="text-xl">Community Safety Dashboard</h2>
+                <p class="text-sm text-gray">Welcome back! Here's the latest from your area.</p>
+            </div>
+
+            <div class="grid grid-4">
+                <div class="card">
+                    <div class="flex-between">
+                        <div>
+                            <h3 class="text-lg">Active Incidents</h3>
+                            <p class="text-xl">${reports.filter(r => r.status === 'active').length}</p>
                         </div>
-
-                        <nav class="hidden md:flex items-center space-x-1">
-                            <button onclick="navigateTo('home')" class="px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeView === 'home' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:text-blue-600 hover:bg-gray-100'}">
-                                <i data-lucide="home" class="h-4 w-4 inline mr-2"></i>
-                                Home
-                            </button>
-                            <button onclick="navigateTo('report')" class="px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeView === 'report' ? 'bg-red-100 text-red-700' : 'text-gray-700 hover:text-red-600 hover:bg-gray-100'}">
-                                <i data-lucide="alert-triangle" class="h-4 w-4 inline mr-2"></i>
-                                Report Emergency
-                            </button>
-                            <button onclick="navigateTo('community')" class="px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeView === 'community' ? 'bg-green-100 text-green-700' : 'text-gray-700 hover:text-green-600 hover:bg-gray-100'}">
-                                <i data-lucide="users" class="h-4 w-4 inline mr-2"></i>
-                                Community
-                            </button>
-                            <button onclick="navigateTo('municipal')" class="px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeView === 'municipal' ? 'bg-purple-100 text-purple-700' : 'text-gray-700 hover:text-purple-600 hover:bg-gray-100'}">
-                                Municipal Dashboard
-                            </button>
-                            <button onclick="navigateTo('map')" class="px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeView === 'map' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-100'}">
-                                <i data-lucide="map" class="h-4 w-4 inline mr-2"></i>
-                                Live Map
-                            </button>
-                        </nav>
-
-                        <div class="md:hidden">
-                            <button class="text-gray-700 p-2">
-                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                                </svg>
-                            </button>
+                        <div class="bg-light p-md rounded">
+                            <i data-lucide="alert-triangle" class="text-danger"></i>
                         </div>
                     </div>
                 </div>
-            `;
-            return header;
-        }
 
-        function renderFooter() {
-            const footer = document.createElement('footer');
-            footer.className = 'bg-gray-900 text-white py-12';
-            footer.innerHTML = `
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-                        <div class="col-span-1 md:col-span-2">
-                            <div class="flex items-center space-x-3 mb-4">
-                                <div class="bg-blue-600 p-2 rounded-lg">
-                                    <i data-lucide="shield" class="h-6 w-6 text-white"></i>
+                <div class="card">
+                    <div class="flex-between">
+                        <div>
+                            <h3 class="text-lg">Reports Today</h3>
+                            <p class="text-xl">${reports.length}</p>
+                        </div>
+                        <div class="bg-light p-md rounded">
+                            <i data-lucide="clipboard" class="text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="flex-between">
+                        <div>
+                            <h3 class="text-lg">Response Time</h3>
+                            <p class="text-xl">8.4 min</p>
+                        </div>
+                        <div class="bg-light p-md rounded">
+                            <i data-lucide="clock" class="text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="flex-between">
+                        <div>
+                            <h3 class="text-lg">Prevented</h3>
+                            <p class="text-xl">14</p>
+                        </div>
+                        <div class="bg-light p-md rounded">
+                            <i data-lucide="shield-check" class="text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="text-lg">Recent Activity</h3>
+                    </div>
+                    <div class="flex flex-col gap-md">
+                        ${recentActivity.map(item => `
+                            <div class="flex gap-md">
+                                <div class="bg-light p-sm rounded">
+                                    <i data-lucide="${getActivityIcon(item.type)}"></i>
                                 </div>
                                 <div>
-                                    <h3 class="text-lg font-bold">CableGuard</h3>
-                                    <p class="text-sm text-gray-400">Smart Community Protection</p>
-                                </div>
-                            </div>
-                            <p class="text-gray-400 mb-4">
-                                Protecting Tshwane's infrastructure through community engagement, smart technology, 
-                                and real-time monitoring. Together, we're building safer neighborhoods.
-                            </p>
-                            <div class="flex space-x-4">
-                                <button class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors">
-                                    Emergency: 10177
-                                </button>
-                                <button class="border border-gray-600 hover:border-gray-500 text-gray-300 hover:text-white px-4 py-2 rounded-lg transition-colors">
-                                    Report Non-Emergency
-                                </button>
-                            </div>
-                        </div>
-
-                        <div>
-                            <h4 class="text-lg font-semibold mb-4">Quick Links</h4>
-                            <ul class="space-y-2 text-gray-400">
-                                <li><a href="#" class="hover:text-white transition-colors">Report Emergency</a></li>
-                                <li><a href="#" class="hover:text-white transition-colors">Join Community</a></li>
-                                <li><a href="#" class="hover:text-white transition-colors">Municipal Dashboard</a></li>
-                                <li><a href="#" class="hover:text-white transition-colors">Live Map</a></li>
-                                <li><a href="#" class="hover:text-white transition-colors">Safety Tips</a></li>
-                            </ul>
-                        </div>
-
-                        <div>
-                            <h4 class="text-lg font-semibold mb-4">Contact</h4>
-                            <div class="space-y-3 text-gray-400">
-                                <div class="flex items-center">
-                                    <i data-lucide="phone" class="h-4 w-4 mr-2"></i>
-                                    <span>012 358 0000</span>
-                                </div>
-                                <div class="flex items-center">
-                                    <i data-lucide="mail" class="h-4 w-4 mr-2"></i>
-                                    <span>info@cableguard.co.za</span>
-                                </div>
-                                <div class="flex items-center">
-                                    <i data-lucide="map-pin" class="h-4 w-4 mr-2"></i>
-                                    <span>City of Tshwane<br>Pretoria, South Africa</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mt-8 pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center">
-                        <div class="text-gray-400 text-sm mb-4 md:mb-0">
-                            © 2025 CableGuard. All rights reserved. | Privacy Policy | Terms of Service
-                        </div>
-                        <div class="flex space-x-6 text-sm text-gray-400">
-                            <span>🔒 Encrypted & Secure</span>
-                            <span>📱 Data-Free Access</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-            return footer;
-        }
-
-        function renderHome() {
-            const main = document.createElement('main');
-            main.className = 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8';
-            main.innerHTML = `
-                <div class="mb-8">
-                    <h2 class="text-2xl font-bold text-gray-900">Community Safety Dashboard</h2>
-                    <p class="text-gray-600">Welcome back! Here's the latest from your area.</p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-red-600">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-700">Active Incidents</h3>
-                                <p class="text-3xl font-bold text-gray-900">2</p>
-                            </div>
-                            <div class="bg-red-100 p-3 rounded-lg">
-                                <i data-lucide="alert-triangle" class="h-6 w-6 text-red-600"></i>
-                            </div>
-                        </div>
-                        <p class="text-sm text-gray-500 mt-2">In Hatfield & Sunnyside</p>
-                    </div>
-
-                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-600">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-700">Sensors Active</h3>
-                                <p class="text-3xl font-bold text-gray-900">143</p>
-                            </div>
-                            <div class="bg-green-100 p-3 rounded-lg">
-                                <i data-lucide="radio" class="h-6 w-6 text-green-600"></i>
-                            </div>
-                        </div>
-                        <p class="text-sm text-gray-500 mt-2">4 zones covered</p>
-                    </div>
-
-                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-600">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-700">Response Time</h3>
-                                <p class="text-3xl font-bold text-gray-900">8.4 min</p>
-                            </div>
-                            <div class="bg-blue-100 p-3 rounded-lg">
-                                <i data-lucide="clock" class="h-6 w-6 text-blue-600"></i>
-                            </div>
-                        </div>
-                        <p class="text-sm text-gray-500 mt-2">Average this month</p>
-                    </div>
-
-                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-purple-600">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-700">Prevented</h3>
-                                <p class="text-3xl font-bold text-gray-900">14</p>
-                            </div>
-                            <div class="bg-purple-100 p-3 rounded-lg">
-                                <i data-lucide="shield-check" class="h-6 w-6 text-purple-600"></i>
-                            </div>
-                        </div>
-                        <p class="text-sm text-gray-500 mt-2">Incidents this month</p>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-                    <div class="bg-white rounded-xl shadow-md p-6 lg:col-span-2">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-xl font-semibold text-gray-900">Recent Activity</h3>
-                            <button class="text-blue-600 hover:text-blue-800 text-sm font-medium">View All</button>
-                        </div>
-                        <div class="space-y-4">
-                            ${recentActivity.map(item => `
-                                <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                                    <div class="flex justify-between items-start">
-                                        <div class="flex items-start space-x-3">
-                                            <div class="mt-1">
-                                                ${item.type === 'sensor_alert' ? 
-                                                    '<div class="bg-red-100 p-2 rounded-full"><i data-lucide="radio" class="h-4 w-4 text-red-600"></i></div>' : 
-                                                    item.type === 'community_report' ? 
-                                                    '<div class="bg-blue-100 p-2 rounded-full"><i data-lucide="users" class="h-4 w-4 text-blue-600"></i></div>' : 
-                                                    '<div class="bg-green-100 p-2 rounded-full"><i data-lucide="shield-check" class="h-4 w-4 text-green-600"></i></div>'
-                                                }
-                                            </div>
-                                            <div>
-                                                <h4 class="font-medium text-gray-900">${item.location}</h4>
-                                                <p class="text-sm text-gray-600">${item.message}</p>
-                                                <div class="flex items-center mt-2">
-                                                    <span class="text-xs ${item.status === 'resolved' ? 'bg-green-100 text-green-800' : item.status === 'investigating' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'} px-2 py-1 rounded-full">${item.status}</span>
-                                                    <span class="text-xs text-gray-500 ml-2">${item.time}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-xl shadow-md p-6">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-xl font-semibold text-gray-900">Community Watch</h3>
-                            <button class="text-blue-600 hover:text-blue-800 text-sm font-medium">Join Group</button>
-                        </div>
-                        <div class="space-y-4">
-                            ${watchGroups.map(group => `
-                                <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                                    <div class="flex justify-between items-start">
-                                        <div>
-                                            <h4 class="font-medium text-gray-900">${group.name}</h4>
-                                            <div class="flex items-center mt-2">
-                                                <span class="text-xs ${group.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'} px-2 py-1 rounded-full">${group.active ? 'Active' : 'Inactive'}</span>
-                                                <span class="text-xs text-gray-500 ml-2">${group.members} members</span>
-                                            </div>
-                                        </div>
-                                        <button class="text-blue-600 hover:text-blue-800">
-                                            <i data-lucide="chevron-right" class="h-5 w-5"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-md p-6 mb-8">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-xl font-semibold text-gray-900">Sensor Status by Zone</h3>
-                        <button class="text-blue-600 hover:text-blue-800 text-sm font-medium">View Details</button>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        ${sensorStatus.map(zone => `
-                            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                                <h4 class="font-medium text-gray-900 mb-2">${zone.zone}</h4>
-                                <div class="flex justify-between items-center mb-2">
-                                    <span class="text-sm text-gray-600">Sensors</span>
-                                    <span class="text-sm font-medium">${zone.active}/${zone.total}</span>
-                                </div>
-                                <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
-                                    <div class="bg-green-600 h-2 rounded-full" style="width: ${(zone.active/zone.total)*100}%"></div>
-                                </div>
-                                <div class="flex justify-between text-xs text-gray-500">
-                                    <span>${zone.offline} offline</span>
-                                    <span>${zone.alerts} alerts</span>
+                                    <h4 class="text-md">${item.location}</h4>
+                                    <p class="text-sm">${item.message}</p>
+                                    <span class="text-sm">${item.time}</span>
                                 </div>
                             </div>
                         `).join('')}
                     </div>
                 </div>
 
-                <div class="bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700 rounded-xl shadow-lg p-8 text-white">
-                    <div class="max-w-3xl">
-                        <h3 class="text-2xl font-bold mb-4">Report Suspicious Activity</h3>
-                        <p class="mb-6">See something that doesn't look right? Report it immediately and help prevent cable theft in your community.</p>
-                        <div class="flex flex-col sm:flex-row gap-4">
-                            <button class="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center">
-                                <i data-lucide="alert-triangle" class="h-5 w-5 mr-2"></i>
-                                Emergency Report
-                            </button>
-                            <button class="bg-white hover:bg-gray-100 text-blue-900 font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center">
-                                <i data-lucide="clipboard-list" class="h-5 w-5 mr-2"></i>
-                                Non-Emergency Report
-                            </button>
-                        </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="text-lg">Community Watch</h3>
                     </div>
-                </div>
-            `;
-            return main;
-        }
-
-        function renderReport() {
-            const main = document.createElement('main');
-            main.className = 'max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8';
-            main.innerHTML = `
-                <div class="mb-8 text-center">
-                    <h2 class="text-3xl font-bold text-gray-900">Report an Incident</h2>
-                    <p class="text-gray-600">Help keep your community safe by reporting suspicious activity or emergencies</p>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-md overflow-hidden">
-                    <div class="bg-red-600 p-6 text-white">
-                        <div class="flex items-center">
-                            <i data-lucide="alert-triangle" class="h-8 w-8 mr-3"></i>
-                            <h3 class="text-xl font-semibold">Emergency Reporting</h3>
-                        </div>
-                        <p class="mt-2">For crimes in progress or immediate danger, call emergency services first</p>
-                    </div>
-
-                    <div class="p-6">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                            <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-                                <i data-lucide="phone" class="h-10 w-10 text-red-600 mx-auto mb-2"></i>
-                                <h4 class="font-semibold text-red-800">Emergency Services</h4>
-                                <p class="text-red-600 font-mono text-xl mt-2">10177</p>
-                            </div>
-
-                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                                <i data-lucide="shield" class="h-10 w-10 text-blue-600 mx-auto mb-2"></i>
-                                <h4 class="font-semibold text-blue-800">CableGuard Hotline</h4>
-                                <p class="text-blue-600 font-mono text-xl mt-2">012 358 9999</p>
-                            </div>
-                        </div>
-
-                        <div class="border-t border-gray-200 pt-6">
-                            <h4 class="text-lg font-semibold text-gray-900 mb-4">Report Non-Emergency Incident</h4>
-                            <form class="space-y-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Incident Type</label>
-                                    <select class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
-                                        <option>Suspicious Activity</option>
-                                        <option>Attempted Cable Theft</option>
-                                        <option>Vandalism</option>
-                                        <option>Other</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                                    <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" placeholder="Enter location or address">
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                                    <textarea rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" placeholder="Describe what you saw"></textarea>
-                                </div>
-
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Your Name (Optional)</label>
-                                        <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-                                    </div>
-
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Contact (Optional)</label>
-                                        <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-                                    </div>
-                                </div>
-
-                                <div class="flex items-center">
-                                    <input type="checkbox" id="anonymous" class="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded">
-                                    <label for="anonymous" class="ml-2 block text-sm text-gray-700">Report anonymously</label>
-                                </div>
-
-                                <div class="pt-4">
-                                    <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors">
-                                        Submit Report
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-md p-6 mt-8">
-                    <h3 class="text-xl font-semibold text-gray-900 mb-4">Recent Incidents in Your Area</h3>
-                    <div class="space-y-4">
-                        ${recentIncidents.map(incident => `
-                            <div class="border border-gray-200 rounded-lg p-4">
-                                <div class="flex justify-between items-start">
-                                    <div>
-                                        <h4 class="font-medium text-gray-900">${incident.type}</h4>
-                                        <p class="text-sm text-gray-600">${incident.location}</p>
-                                        <div class="flex items-center mt-2">
-                                            <span class="text-xs ${incident.status === 'resolved' ? 'bg-green-100 text-green-800' : incident.status === 'investigating' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'} px-2 py-1 rounded-full">${incident.status}</span>
-                                            <span class="text-xs text-gray-500 ml-2">${incident.timestamp}</span>
-                                        </div>
-                                    </div>
-                                    <div class="text-right">
-                                        <p class="text-sm font-mono text-gray-900">${incident.id}</p>
-                                        <p class="text-xs text-gray-500">Response: ${incident.responseTime}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
-            return main;
-        }
-
-        function renderCommunity() {
-            const main = document.createElement('main');
-            main.className = 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8';
-            main.innerHTML = `
-                <div class="mb-8 text-center">
-                    <h2 class="text-3xl font-bold text-gray-900">Community Watch</h2>
-                    <p class="text-gray-600">Join forces with your neighbors to protect your community</p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-                    <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg p-8 text-white">
-                        <h3 class="text-2xl font-bold mb-4">Join Your Local Watch</h3>
-                        <p class="mb-6">Connect with neighbors, share information, and coordinate patrols to keep your area safe.</p>
-                        <button class="bg-white hover:bg-gray-100 text-indigo-700 font-semibold py-3 px-6 rounded-lg transition-colors">
-                            Find My Neighborhood Group
-                        </button>
-                    </div>
-
-                    <div class="bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl shadow-lg p-8 text-white">
-                        <h3 class="text-2xl font-bold mb-4">Become a Volunteer</h3>
-                        <p class="mb-6">Help monitor sensors, coordinate responses, and educate your community about cable theft prevention.</p>
-                        <button class="bg-white hover:bg-gray-100 text-purple-700 font-semibold py-3 px-6 rounded-lg transition-colors">
-                            Sign Up to Volunteer
-                        </button>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-md p-6 mb-8">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-xl font-semibold text-gray-900">Neighborhood Watch Groups</h3>
-                        <button class="text-blue-600 hover:text-blue-800 text-sm font-medium">Create New Group</button>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="flex flex-col gap-md">
                         ${watchGroups.map(group => `
-                            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                                <div class="flex justify-between items-start">
-                                    <div>
-                                        <h4 class="font-medium text-gray-900">${group.name}</h4>
-                                        <div class="flex items-center mt-2">
-                                            <span class="text-xs ${group.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'} px-2 py-1 rounded-full">${group.active ? 'Active' : 'Inactive'}</span>
-                                            <span class="text-xs text-gray-500 ml-2">${group.members} members</span>
-                                        </div>
-                                    </div>
-                                    <button class="text-blue-600 hover:text-blue-800">
-                                        <i data-lucide="chevron-right" class="h-5 w-5"></i>
-                                    </button>
+                            <div class="flex-between">
+                                <div>
+                                    <h4 class="text-md">${group.name}</h4>
+                                    <p class="text-sm">${group.members} members</p>
                                 </div>
+                                <span class="text-sm ${group.active ? 'text-success' : 'text-gray'}">
+                                    ${group.active ? 'Active' : 'Inactive'}
+                                </span>
                             </div>
                         `).join('')}
                     </div>
                 </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div class="bg-white rounded-xl shadow-md p-6">
-                        <h3 class="text-xl font-semibold text-gray-900 mb-6">Safety Resources</h3>
-                        <div class="space-y-4">
-                            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                                <div class="flex items-start space-x-3">
-                                    <div class="bg-blue-100 p-2 rounded-lg">
-                                        <i data-lucide="file-text" class="h-5 w-5 text-blue-600"></i>
-                                    </div>
-                                    <div>
-                                        <h4 class="font-medium text-gray-900">Neighborhood Watch Guidelines</h4>
-                                        <p class="text-sm text-gray-600">Best practices for organizing and running an effective watch program</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                                <div class="flex items-start space-x-3">
-                                    <div class="bg-green-100 p-2 rounded-lg">
-                                        <i data-lucide="shield" class="h-5 w-5 text-green-600"></i>
-                                    </div>
-                                    <div>
-                                        <h4 class="font-medium text-gray-900">Safety Training Materials</h4>
-                                        <p class="text-sm text-gray-600">Resources for staying safe while monitoring your community</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                                <div class="flex items-start space-x-3">
-                                    <div class="bg-purple-100 p-2 rounded-lg">
-                                        <i data-lucide="megaphone" class="h-5 w-5 text-purple-600"></i>
-                                    </div>
-                                    <div>
-                                        <h4 class="font-medium text-gray-900">Community Alert Templates</h4>
-                                        <p class="text-sm text-gray-600">Pre-written alerts for common situations in your neighborhood</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-xl shadow-md p-6">
-                        <h3 class="text-xl font-semibold text-gray-900 mb-6">Upcoming Events</h3>
-                        <div class="space-y-4">
-                            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                                <div class="flex justify-between items-start">
-                                    <div>
-                                        <h4 class="font-medium text-gray-900">Community Safety Workshop</h4>
-                                        <p class="text-sm text-gray-600">January 25, 2025 • 6:30 PM - 8:00 PM</p>
-                                        <p class="text-sm text-gray-600">Hatfield Community Center</p>
-                                    </div>
-                                    <button class="text-blue-600 hover:text-blue-800 text-sm font-medium">RSVP</button>
-                                </div>
-                            </div>
-
-                            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                                <div class="flex justify-between items-start">
-                                    <div>
-                                        <h4 class="font-medium text-gray-900">Neighborhood Patrol Training</h4>
-                                        <p class="text-sm text-gray-600">February 3, 2025 • 10:00 AM - 12:00 PM</p>
-                                        <p class="text-sm text-gray-600">Sunnyside Police Station</p>
-                                    </div>
-                                    <button class="text-blue-600 hover:text-blue-800 text-sm font-medium">RSVP</button>
-                                </div>
-                            </div>
-
-                            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                                <div class="flex justify-between items-start">
-                                    <div>
-                                        <h4 class="font-medium text-gray-900">CableGuard Town Hall</h4>
-                                        <p class="text-sm text-gray-600">February 15, 2025 • 7:00 PM - 9:00 PM</p>
-                                        <p class="text-sm text-gray-600">Tshwane Municipal Building</p>
-                                    </div>
-                                    <button class="text-blue-600 hover:text-blue-800 text-sm font-medium">RSVP</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            return main;
-        }
-
-        function renderMunicipal() {
-            const main = document.createElement('main');
-            main.className = 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8';
-            main.innerHTML = `
-                <div class="mb-8">
-                    <h2 class="text-2xl font-bold text-gray-900">Municipal Dashboard</h2>
-                    <p class="text-gray-600">Infrastructure monitoring and incident management</p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-red-600">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-700">Active Incidents</h3>
-                                <p class="text-3xl font-bold text-gray-900">2</p>
-                            </div>
-                            <div class="bg-red-100 p-3 rounded-lg">
-                                <i data-lucide="alert-triangle" class="h-6 w-6 text-red-600"></i>
-                            </div>
-                        </div>
-                        <p class="text-sm text-gray-500 mt-2">Requiring attention</p>
-                    </div>
-
-                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-600">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-700">Sensors Active</h3>
-                                <p class="text-3xl font-bold text-gray-900">143/147</p>
-                            </div>
-                            <div class="bg-green-100 p-3 rounded-lg">
-                                <i data-lucide="radio" class="h-6 w-6 text-green-600"></i>
-                            </div>
-                        </div>
-                        <p class="text-sm text-gray-500 mt-2">97% operational</p>
-                    </div>
-
-                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-600">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-700">Avg Response Time</h3>
-                                <p class="text-3xl font-bold text-gray-900">8.4 min</p>
-                            </div>
-                            <div class="bg-blue-100 p-3 rounded-lg">
-                                <i data-lucide="clock" class="h-6 w-6 text-blue-600"></i>
-                            </div>
-                        </div>
-                        <p class="text-sm text-gray-500 mt-2">This month</p>
-                    </div>
-
-                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-purple-600">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-700">Cost Prevention</h3>
-                                <p class="text-3xl font-bold text-gray-900">R 2.4M</p>
-                            </div>
-                            <div class="bg-purple-100 p-3 rounded-lg">
-                                <i data-lucide="dollar-sign" class="h-6 w-6 text-purple-600"></i>
-                            </div>
-                        </div>
-                        <p class="text-sm text-gray-500 mt-2">Estimated this quarter</p>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-                    <div class="bg-white rounded-xl shadow-md p-6 lg:col-span-2">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-xl font-semibold text-gray-900">Recent Incidents</h3>
-                            <button class="text-blue-600 hover:text-blue-800 text-sm font-medium">View All</button>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full">
-                                <thead>
-                                    <tr class="text-left text-sm text-gray-500 border-b border-gray-200">
-                                        <th class="pb-3">ID</th>
-                                        <th class="pb-3">Type</th>
-                                        <th class="pb-3">Location</th>
-                                        <th class="pb-3">Status</th>
-                                        <th class="pb-3">Time</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-200">
-                                    ${recentIncidents.map(incident => `
-                                        <tr class="hover:bg-gray-50">
-                                            <td class="py-3 text-sm font-medium text-gray-900">${incident.id}</td>
-                                            <td class="py-3 text-sm text-gray-700">${incident.type}</td>
-                                            <td class="py-3 text-sm text-gray-700">${incident.location}</td>
-                                            <td class="py-3">
-                                                <span class="text-xs px-2 py-1 rounded-full ${incident.status === 'resolved' ? 'bg-green-100 text-green-800' : incident.status === 'investigating' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}">
-                                                    ${incident.status}
-                                                </span>
-                                            </td>
-                                            <td class="py-3 text-sm text-gray-500">${incident.timestamp}</td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-xl shadow-md p-6">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-xl font-semibold text-gray-900">Sensor Status</h3>
-                            <button class="text-blue-600 hover:text-blue-800 text-sm font-medium">View Details</button>
-                        </div>
-                        <div class="space-y-4">
-                            ${sensorStatus.map(zone => `
-                                <div class="border border-gray-200 rounded-lg p-4">
-                                    <h4 class="font-medium text-gray-900 mb-2">${zone.zone}</h4>
-                                    <div class="flex justify-between items-center mb-2">
-                                        <span class="text-sm text-gray-600">Operational</span>
-                                        <span class="text-sm font-medium">${zone.active}/${zone.total}</span>
-                                    </div>
-                                    <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
-                                        <div class="bg-green-600 h-2 rounded-full" style="width: ${(zone.active/zone.total)*100}%"></div>
-                                    </div>
-                                    <div class="flex justify-between text-xs text-gray-500">
-                                        <span>${zone.offline} offline</span>
-                                        <span>${zone.alerts} alerts</span>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-md p-6 mb-8">
-                    <h3 class="text-xl font-semibold text-gray-900 mb-6">Response Team Status</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="border border-gray-200 rounded-lg p-4 text-center">
-                            <div class="bg-green-100 text-green-800 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
-                                <i data-lucide="user-check" class="h-8 w-8"></i>
-                            </div>
-                            <h4 class="font-medium text-gray-900">Available</h4>
-                            <p class="text-2xl font-bold text-gray-900">12</p>
-                            <p class="text-sm text-gray-500">Response teams</p>
-                        </div>
-
-                        <div class="border border-gray-200 rounded-lg p-4 text-center">
-                            <div class="bg-yellow-100 text-yellow-800 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
-                                <i data-lucide="user-clock" class="h-8 w-8"></i>
-                            </div>
-                            <h4 class="font-medium text-gray-900">Responding</h4>
-                            <p class="text-2xl font-bold text-gray-900">3</p>
-                            <p class="text-sm text-gray-500">Active incidents</p>
-                        </div>
-
-                        <div class="border border-gray-200 rounded-lg p-4 text-center">
-                            <div class="bg-gray-100 text-gray-800 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
-                                <i data-lucide="user-x" class="h-8 w-8"></i>
-                            </div>
-                            <h4 class="font-medium text-gray-900">Off-duty</h4>
-                            <p class="text-2xl font-bold text-gray-900">5</p>
-                            <p class="text-sm text-gray-500">Until next shift</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-md p-6">
-                    <h3 class="text-xl font-semibold text-gray-900 mb-6">Maintenance Schedule</h3>
-                    <div class="overflow-x-auto">
-                        <table class="w-full">
-                            <thead>
-                                <tr class="text-left text-sm text-gray-500 border-b border-gray-200">
-                                    <th class="pb-3">Infrastructure</th>
-                                    <th class="pb-3">Location</th>
-                                    <th class="pb-3">Last Inspection</th>
-                                    <th class="pb-3">Next Due</th>
-                                    <th class="pb-3">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200">
-                                <tr class="hover:bg-gray-50">
-                                    <td class="py-3 text-sm font-medium text-gray-900">Electrical Substation A</td>
-                                    <td class="py-3 text-sm text-gray-700">Hatfield</td>
-                                    <td class="py-3 text-sm text-gray-700">2025-01-15</td>
-                                    <td class="py-3 text-sm text-gray-700">2025-04-15</td>
-                                    <td class="py-3">
-                                        <span class="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">OK</span>
-                                    </td>
-                                </tr>
-                                <tr class="hover:bg-gray-50">
-                                    <td class="py-3 text-sm font-medium text-gray-900">Fiber Optic Hub 12</td>
-                                    <td class="py-3 text-sm text-gray-700">Sunnyside</td>
-                                    <td class="py-3 text-sm text-gray-700">2025-01-10</td>
-                                    <td class="py-3 text-sm text-gray-700">2025-04-10</td>
-                                    <td class="py-3">
-                                        <span class="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">OK</span>
-                                    </td>
-                                </tr>
-                                <tr class="hover:bg-gray-50">
-                                    <td class="py-3 text-sm font-medium text-gray-900">Communication Tower B</td>
-                                    <td class="py-3 text-sm text-gray-700">Brooklyn</td>
-                                    <td class="py-3 text-sm text-gray-700">2024-12-20</td>
-                                    <td class="py-3 text-sm text-gray-700">2025-03-20</td>
-                                    <td class="py-3">
-                                        <span class="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-800">Pending</span>
-                                    </td>
-                                </tr>
-                                <tr class="hover:bg-gray-50">
-                                    <td class="py-3 text-sm font-medium text-gray-900">Cable Junction 7B</td>
-                                    <td class="py-3 text-sm text-gray-700">Arcadia</td>
-                                    <td class="py-3 text-sm text-gray-700">2024-11-05</td>
-                                    <td class="py-3 text-sm text-gray-700">2025-02-05</td>
-                                    <td class="py-3">
-                                        <span class="text-xs px-2 py-1 rounded-full bg-red-100 text-red-800">Overdue</span>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
-            return main;
-        }
-
-        function renderMap() {
-            const main = document.createElement('main');
-            main.className = 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8';
-            main.innerHTML = `
-                <div class="mb-8">
-                    <h2 class="text-2xl font-bold text-gray-900">Live Monitoring Map</h2>
-                    <p class="text-gray-600">Real-time view of sensors, incidents, and community watch activities</p>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-md p-6 mb-8">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                        <h3 class="text-xl font-semibold text-gray-900">Tshwane Infrastructure Map</h3>
-                        <div class="flex flex-wrap gap-2">
-                            <button class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium flex items-center">
-                                <div class="w-3 h-3 bg-blue-600 rounded-full mr-2"></div>
-                                Active Sensors
-                            </button>
-                            <button class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium flex items-center">
-                                <div class="w-3 h-3 bg-red-600 rounded-full mr-2"></div>
-                                Active Incidents
-                            </button>
-                            <button class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium flex items-center">
-                                <div class="w-3 h-3 bg-green-600 rounded-full mr-2"></div>
-                                Patrols
-                            </button>
-                            <button class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium flex items-center">
-                                <div class="w-3 h-3 bg-purple-600 rounded-full mr-2"></div>
-                                Watch Groups
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="bg-gray-200 rounded-lg h-96 flex items-center justify-center relative mb-4">
-                        <!-- Simplified map representation -->
-                        <div class="absolute inset-0 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
-                            <!-- Map content would go here in a real implementation -->
-                            <div class="absolute top-1/4 left-1/4 transform -translate-x-1/2 -translate-y-1/2">
-                                <div class="bg-red-600 text-white p-2 rounded-full shadow-lg">
-                                    <i data-lucide="alert-triangle" class="h-5 w-5"></i>
-                                </div>
-                                <div class="text-xs bg-white px-2 py-1 rounded mt-1 shadow">Incident</div>
-                            </div>
-                            
-                            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                                <div class="bg-blue-600 text-white p-2 rounded-full shadow-lg">
-                                    <i data-lucide="radio" class="h-5 w-5"></i>
-                                </div>
-                                <div class="text-xs bg-white px-2 py-1 rounded mt-1 shadow">Sensor</div>
-                            </div>
-                            
-                            <div class="absolute top-2/3 left-1/3 transform -translate-x-1/2 -translate-y-1/2">
-                                <div class="bg-green-600 text-white p-2 rounded-full shadow-lg">
-                                    <i data-lucide="users" class="h-5 w-5"></i>
-                                </div>
-                                <div class="text-xs bg-white px-2 py-1 rounded mt-1 shadow">Patrol</div>
-                            </div>
-                            
-                            <div class="absolute top-1/3 left-2/3 transform -translate-x-1/2 -translate-y-1/2">
-                                <div class="bg-purple-600 text-white p-2 rounded-full shadow-lg">
-                                    <i data-lucide="shield" class="h-5 w-5"></i>
-                                </div>
-                                <div class="text-xs bg-white px-2 py-1 rounded mt-1 shadow">Watch Group</div>
-                            </div>
-                        </div>
-                        <div class="text-gray-500">Live map would appear here with real data</div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                            <div class="flex items-center mb-2">
-                                <div class="bg-blue-600 p-2 rounded-lg mr-3">
-                                    <i data-lucide="radio" class="h-5 w-5 text-white"></i>
-                                </div>
-                                <div>
-                                    <h4 class="font-medium text-gray-900">143 Sensors Active</h4>
-                                    <p class="text-sm text-gray-600">4 offline</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-                            <div class="flex items-center mb-2">
-                                <div class="bg-red-600 p-2 rounded-lg mr-3">
-                                    <i data-lucide="alert-triangle" class="h-5 w-5 text-white"></i>
-                                </div>
-                                <div>
-                                    <h4 class="font-medium text-gray-900">2 Active Incidents</h4>
-                                    <p class="text-sm text-gray-600">Response in progress</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                            <div class="flex items-center mb-2">
-                                <div class="bg-green-600 p-2 rounded-lg mr-3">
-                                    <i data-lucide="users" class="h-5 w-5 text-white"></i>
-                                </div>
-                                <div>
-                                    <h4 class="font-medium text-gray-900">8 Active Patrols</h4>
-                                    <p class="text-sm text-gray-600">In your area</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div class="bg-white rounded-xl shadow-md p-6">
-                        <h3 class="text-xl font-semibold text-gray-900 mb-6">Active Incidents</h3>
-                        <div class="space-y-4">
-                            ${incidents.filter(i => i.type === 'active').map(incident => `
-                                <div class="border border-red-200 rounded-lg p-4 bg-red-50">
-                                    <div class="flex justify-between items-start">
-                                        <div>
-                                            <h4 class="font-medium text-gray-900">${incident.description}</h4>
-                                            <p class="text-sm text-gray-600">${incident.location}</p>
-                                            <div class="flex items-center mt-2">
-                                                <span class="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">Active</span>
-                                                <span class="text-xs text-gray-500 ml-2">Response in progress</span>
-                                            </div>
-                                        </div>
-                                        <button class="text-red-600 hover:text-red-800">
-                                            <i data-lucide="alert-circle" class="h-5 w-5"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            `).join('')}
-                            
-                            ${incidents.filter(i => i.type === 'investigating').map(incident => `
-                                <div class="border border-yellow-200 rounded-lg p-4 bg-yellow-50">
-                                    <div class="flex justify-between items-start">
-                                        <div>
-                                            <h4 class="font-medium text-gray-900">${incident.description}</h4>
-                                            <p class="text-sm text-gray-600">${incident.location}</p>
-                                            <div class="flex items-center mt-2">
-                                                <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">Investigating</span>
-                                                <span class="text-xs text-gray-500 ml-2">Under review</span>
-                                            </div>
-                                        </div>
-                                        <button class="text-yellow-600 hover:text-yellow-800">
-                                            <i data-lucide="clock" class="h-5 w-5"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-xl shadow-md p-6">
-                        <h3 class="text-xl font-semibold text-gray-900 mb-6">Sensor Status by Zone</h3>
-                        <div class="space-y-4">
-                            ${sensorStatus.map(zone => `
-                                <div class="border border-gray-200 rounded-lg p-4">
-                                    <h4 class="font-medium text-gray-900 mb-2">${zone.zone}</h4>
-                                    <div class="flex justify-between items-center mb-2">
-                                        <span class="text-sm text-gray-600">Operational</span>
-                                        <span class="text-sm font-medium">${zone.active}/${zone.total}</span>
-                                    </div>
-                                    <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
-                                        <div class="bg-green-600 h-2 rounded-full" style="width: ${(zone.active/zone.total)*100}%"></div>
-                                    </div>
-                                    <div class="flex justify-between text-xs text-gray-500">
-                                        <span>${zone.offline} offline</span>
-                                        <span>${zone.alerts} alerts</span>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                </div>
-            `;
-            return main;
-        }
-
-        function render() {
-            const app = document.getElementById('app');
-            app.innerHTML = '';
-            
-            app.appendChild(renderHeader());
-            
-            let mainContent;
-            switch(activeView) {
-                case 'home':
-                    mainContent = renderHome();
-                    break;
-                case 'report':
-                    mainContent = renderReport();
-                    break;
-                case 'community':
-                    mainContent = renderCommunity();
-                    break;
-                case 'municipal':
-                    mainContent = renderMunicipal();
-                    break;
-                case 'map':
-                    mainContent = renderMap();
-                    break;
-                default:
-                    mainContent = renderHome();
-            }
-            
-            app.appendChild(mainContent);
-            app.appendChild(renderFooter());
-            
-            // Initialize Lucide icons
-            if (window.lucide) {
-                lucide.createIcons();
-            }
-        }
-
-        // Initialize the app
-        document.addEventListener('DOMContentLoaded', () => {
-            render();
-        });
-        function renderReport() {
-    const main = document.createElement('main');
-    main.className = 'max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8';
-    main.innerHTML = `
-        <!-- ... other content ... -->
-        <form id="reportForm" class="space-y-4">
-            <!-- ... form fields ... -->
-        </form>
-        <!-- ... -->
-    `;
-
-    // After adding the form, attach the event listener
-    setTimeout(() => {
-        const form = document.getElementById('reportForm');
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            // Collect form data
-            const formData = new FormData(form);
-            const reportData = {
-                reportType: formData.get('reportType'),
-                location: formData.get('location'),
-                report: formData.get('description'),
-                name: formData.get('name'),
-                email: formData.get('email'),
-                anon: formData.get('anonymous') ? 'yes' : 'no'
-            };
-
-            const result = await EndUser.submitReport(reportData);
-            if (result.success) {
-                alert('Report submitted successfully!');
-                form.reset();
-            } else {
-                alert('Error: ' + result.error);
-            }
-        });
-    }, 0);
-
-    return main;
-}
-function renderMap() {
-    const main = document.createElement('main');
-    main.className = 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8';
-    main.innerHTML = `
-        <div class="mb-8">
-            <h2 class="text-2xl font-bold text-gray-900">Live Monitoring Map</h2>
-            <p class="text-gray-600">Real-time view of sensors, incidents, and community watch activities</p>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                <h3 class="text-xl font-semibold text-gray-900">Tshwane Infrastructure Map</h3>
-                <div class="flex flex-wrap gap-2">
-                    <button class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium flex items-center">
-                        <div class="w-3 h-3 bg-blue-600 rounded-full mr-2"></div>
-                        Active Sensors
-                    </button>
-                    <button class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium flex items-center">
-                        <div class="w-3 h-3 bg-red-600 rounded-full mr-2"></div>
-                        Active Incidents
-                    </button>
-                    <button class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium flex items-center">
-                        <div class="w-3 h-3 bg-green-600 rounded-full mr-2"></div>
-                        Patrols
-                    </button>
-                    <button class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium flex items-center">
-                        <div class="w-3 h-3 bg-purple-600 rounded-full mr-2"></div>
-                        Watch Groups
-                    </button>
-                </div>
             </div>
-
-            <div id="map" class="rounded-lg mb-4"></div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div class="flex items-center mb-2">
-                        <div class="bg-blue-600 p-2 rounded-lg mr-3">
-                            <i data-lucide="radio" class="h-5 w-5 text-white"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-medium text-gray-900">143 Sensors Active</h4>
-                            <p class="text-sm text-gray-600">4 offline</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <div class="flex items-center mb-2">
-                        <div class="bg-red-600 p-2 rounded-lg mr-3">
-                            <i data-lucide="alert-triangle" class="h-5 w-5 text-white"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-medium text-gray-900">2 Active Incidents</h4>
-                            <p class="text-sm text-gray-600">Response in progress</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div class="flex items-center mb-2">
-                        <div class="bg-green-600 p-2 rounded-lg mr-3">
-                            <i data-lucide="users" class="h-5 w-5 text-white"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-medium text-gray-900">8 Active Patrols</h4>
-                            <p class="text-sm text-gray-600">In your area</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <!-- ... rest of the content ... -->
-        </div>
+        </main>
     `;
-
-    // Now, we'll initialize the map after the element is added to the DOM
-    setTimeout(() => {
-        const map = L.map('map').setView([-25.7459, 28.2372], 13); // Centered around Tshwane
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
-
-        // Add markers for incidents
-        incidents.forEach(incident => {
-            const marker = L.marker([incident.lat, incident.lng]).addTo(map);
-            marker.bindPopup(`
-                <strong>${incident.description}</strong><br>
-                Location: ${incident.location}<br>
-                Type: ${incident.type}
-            `);
-        });
-
-        // You can also add circle markers for sensors, etc.
-    }, 0);
-
-    return main;
 }
+
 function renderReport() {
-    const main = document.createElement('main');
-    main.className = 'max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8';
-    main.innerHTML = `
-        <!-- ... other content ... -->
-        <form id="reportForm" class="space-y-4">
-            <!-- ... form fields ... -->
-        </form>
-        <!-- ... -->
+    return `
+        <main class="container p-lg">
+            <div class="card text-center">
+                <h2 class="text-xl">Report an Incident</h2>
+                <p class="text-gray">Help keep your community safe</p>
+            </div>
+
+            <div class="card">
+                <div class="bg-danger text-white p-lg rounded">
+                    <div class="flex gap-md">
+                        <i data-lucide="alert-triangle"></i>
+                        <h3 class="text-lg">Emergency Reporting</h3>
+                    </div>
+                    <p class="text-sm m-md">For immediate danger, call emergency services first</p>
+                </div>
+
+                <form id="reportForm" class="p-lg">
+                    <div class="form-group">
+                        <label class="form-label">Incident Type</label>
+                        <select class="form-input" id="reportType" required>
+                            <option value="">Select type</option>
+                            <option value="suspicious">Suspicious Activity</option>
+                            <option value="theft">Attempted Cable Theft</option>
+                            <option value="vandalism">Vandalism</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Location</label>
+                        <div class="flex gap-sm">
+                            <input type="text" class="form-input" id="location" placeholder="Enter location" required>
+                            <button type="button" class="btn" onclick="getCurrentLocation()">
+                                <i data-lucide="map-pin"></i>Use My Location
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-input" id="description" rows="4" placeholder="Describe what you saw" required></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-danger w-full">
+                        <i data-lucide="send"></i>Submit Report
+                    </button>
+                </form>
+            </div>
+
+            ${reports.length > 0 ? `
+                <div class="card">
+                    <h3 class="text-lg">Your Recent Reports</h3>
+                    <div class="flex flex-col gap-md">
+                        ${reports.map(report => `
+                            <div class="flex-between">
+                                <div>
+                                    <h4 class="text-md">${report.type}</h4>
+                                    <p class="text-sm">${report.location}</p>
+                                </div>
+                                <span class="text-sm">${report.time}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+        </main>
     `;
-
-    // After adding the form, attach the event listener
-    setTimeout(() => {
-        const form = document.getElementById('reportForm');
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            // Collect form data
-            const formData = new FormData(form);
-            const reportData = {
-                reportType: formData.get('reportType'),
-                location: formData.get('location'),
-                report: formData.get('description'),
-                name: formData.get('name'),
-                email: formData.get('email'),
-                anon: formData.get('anonymous') ? 'yes' : 'no'
-            };
-
-            const result = await EndUser.submitReport(reportData);
-            if (result.success) {
-                alert('Report submitted successfully!');
-                form.reset();
-            } else {
-                alert('Error: ' + result.error);
-            }
-        });
-    }, 0);
-
-    return main;
 }
 
+function renderMap() {
+    const activeReports = reports.filter(r => r.status === 'active');
+    
+    return `
+        <main class="container p-lg">
+            <div class="card">
+                <h2 class="text-xl">Live Monitoring Map</h2>
+                <p class="text-gray">Real-time view of incidents in your area</p>
+            </div>
+
+            <div class="card">
+                <div class="flex-between">
+                    <h3 class="text-lg">Tshwane Community Map</h3>
+                    <div class="flex gap-sm">
+                        <span class="bg-light p-sm rounded text-sm">Reports: ${reports.length}</span>
+                        <span class="bg-light p-sm rounded text-sm">Active: ${activeReports.length}</span>
+                    </div>
+                </div>
+
+                <div id="map" class="map-container"></div>
+
+                <div class="grid grid-3">
+                    <div class="text-center">
+                        <div class="bg-light p-md rounded">
+                            <i data-lucide="alert-circle" class="text-danger"></i>
+                        </div>
+                        <h4 class="text-md">Active Incidents</h4>
+                        <p class="text-xl">${activeReports.length}</p>
+                    </div>
+
+                    <div class="text-center">
+                        <div class="bg-light p-md rounded">
+                            <i data-lucide="users" class="text-primary"></i>
+                        </div>
+                        <h4 class="text-md">Watch Groups</h4>
+                        <p class="text-xl">${watchGroups.length}</p>
+                    </div>
+
+                    <div class="text-center">
+                        <div class="bg-light p-md rounded">
+                            <i data-lucide="shield" class="text-success"></i>
+                        </div>
+                        <h4 class="text-md">Prevented</h4>
+                        <p class="text-xl">14</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    `;
+}
+
+function initializeMap() {
+    const mapElement = document.getElementById('map');
+    if (!mapElement || map) return;
+
+    map = L.map('map').setView([-25.7479, 28.2293], 13);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Add existing reports to map
+    reports.forEach(report => {
+        addMarkerToMap(report);
+    });
+}
+
+function addMarkerToMap(report) {
+    if (!map) return;
+
+    // Generate random coordinates near Pretoria for demo
+    const lat = -25.7479 + (Math.random() - 0.5) * 0.1;
+    const lng = 28.2293 + (Math.random() - 0.5) * 0.1;
+
+    const marker = L.marker([lat, lng]).addTo(map);
+    marker.bindPopup(`
+        <strong>${report.type}</strong><br>
+        ${report.location}<br>
+        <small>${report.time}</small>
+    `);
+    
+    markers.push(marker);
+}
+
+function getCurrentLocation() {
+    const locationInput = document.getElementById('location');
+    
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude.toFixed(4);
+                const lng = position.coords.longitude.toFixed(4);
+                locationInput.value = `Nearby (${lat}, ${lng})`;
+            },
+            () => {
+                locationInput.value = 'Hatfield, Pretoria'; // Fallback
+            }
+        );
+    } else {
+        locationInput.value = 'Hatfield, Pretoria'; // Fallback
+    }
+}
+
+function handleReportSubmit(event) {
+    event.preventDefault();
+    
+    const formData = new FormData(event.target);
+    const report = {
+        type: document.getElementById('reportType').value,
+        location: document.getElementById('location').value,
+        description: document.getElementById('description').value,
+        status: 'active',
+        time: 'Just now',
+        id: Date.now()
+    };
+
+    reports.unshift(report); // Add to beginning of array
+    addMarkerToMap(report);
+    
+    // Show success message
+    alert('Report submitted successfully!');
+    event.target.reset();
+    
+    // Update dashboard if on home view
+    if (activeView === 'home') {
+        render();
+    }
+}
+
+function getActivityIcon(type) {
+    const icons = {
+        sensor_alert: 'radio',
+        community_report: 'users',
+        prevention: 'shield-check'
+    };
+    return icons[type] || 'alert-circle';
+}
+
+function render() {
+    const app = document.getElementById('app');
+    app.innerHTML = renderHeader();
+    
+    switch(activeView) {
+        case 'home':
+            app.innerHTML += renderHome();
+            break;
+        case 'report':
+            app.innerHTML += renderReport();
+            setTimeout(() => {
+                document.getElementById('reportForm').addEventListener('submit', handleReportSubmit);
+            }, 100);
+            break;
+        case 'map':
+            app.innerHTML += renderMap();
+            setTimeout(initializeMap, 100);
+            break;
+        default:
+            app.innerHTML += renderHome();
+    }
+    
+    app.innerHTML += renderFooter();
+    
+    // Initialize icons
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+}
