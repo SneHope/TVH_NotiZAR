@@ -1,28 +1,31 @@
-//EndUser.js
+// EndUser.js
+import { supabase, subscribeToAdminUpdates } from './supabaseClient.js';
 
-const SUPABASE_URL = "https://cnptukavcjqbczlzihjv.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNucHR1a2F2Y2pxYmN6bHppaGp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0OTMzODIsImV4cCI6MjA3NDA2OTM4Mn0.1l_E9OI8pKZpIA4f7arbWIl0h0WnZXGFq71Fn_vyQ04";
-
-// Initialize Supabase client
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-document.getElementById("insert-btn").addEventListener("click", async () => {
+// Submit a new report
+export const submitReport = async (reportData) => {
     try {
-        // Get form values
-        const name = document.getElementById("name").value.trim() || null;
-        const age = parseInt(document.getElementById("age").value);
-        const email = document.getElementById("email").value.trim()|| null;
-        const iDNum = document.getElementById("iDNum").value.trim()|| null;
-        const report = document.getElementById("report").value.trim();
-        const reportType = document.getElementById("reportType").value.trim();
-        const location = document.getElementById("location").value.trim();
-        const anon = document.getElementById("anon").value.trim();
+        const { data, error } = await supabase
+            .from('Database')
+            .insert([{
+                name: reportData.name || null,
+                age: reportData.age || null,
+                email: reportData.email || null,
+                iDNum: reportData.iDNum || null,
+                report: reportData.report,
+                reportType: reportData.reportType,
+                location: reportData.location,
+                anon: reportData.anon,
+                status: 'submitted'
+            }])
+            .select();
 
-        // Validation
-        if (!report || !reportType || !location || !anon) {
-            alert("Please fill in all fields");
-            return;
-        }
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error) {
+        console.error('Error submitting report:', error);
+        return { success: false, error: error.message };
+    }
+};
 
 // Get user's previous reports
 export const getUserReports = async (userId) => {
@@ -82,3 +85,54 @@ export const markUpdateAsRead = async (updateId) => {
         return { success: false, error: error.message };
     }
 };
+
+// Initialize form submission (for standalone use)
+export const initializeUserForm = () => {
+    document.getElementById("insert-btn").addEventListener("click", async () => {
+        try {
+            // Get form values
+            const name = document.getElementById("name").value.trim() || null;
+            const age = document.getElementById("age").value ? parseInt(document.getElementById("age").value) : null;
+            const email = document.getElementById("email").value.trim() || null;
+            const iDNum = document.getElementById("iDNum").value.trim() || null;
+            const report = document.getElementById("report").value.trim();
+            const reportType = document.getElementById("reportType").value.trim();
+            const location = document.getElementById("location").value.trim();
+            const anon = document.getElementById("anon").value.trim();
+
+            // Validation
+            if (!report || !reportType || !location || !anon) {
+                alert("Please fill in all required fields");
+                return;
+            }
+
+            const result = await submitReport({
+                name, age, email, iDNum, report, reportType, location, anon
+            });
+
+            if (result.success) {
+                document.getElementById("output").textContent = "Report submitted successfully!\n" + JSON.stringify(result.data, null, 2);
+                alert("Report submitted successfully!");
+                
+                // Clear form
+                document.getElementById("name").value = "";
+                document.getElementById("age").value = "";
+                document.getElementById("email").value = "";
+                document.getElementById("iDNum").value = "";
+                document.getElementById("report").value = "";
+                document.getElementById("location").value = "";
+            } else {
+                document.getElementById("output").textContent = "Error: " + result.error;
+                alert("Error submitting report: " + result.error);
+            }
+        } catch (error) {
+            console.error("Unexpected error:", error);
+            document.getElementById("output").textContent = "Unexpected error: " + error.message;
+        }
+    });
+};
+
+// Auto-initialize if running in browser
+if (typeof window !== 'undefined') {
+    window.EndUser = { submitReport, getUserReports, getReportUpdates, listenForAdminUpdates, markUpdateAsRead, initializeUserForm };
+}
