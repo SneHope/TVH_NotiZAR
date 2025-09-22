@@ -664,6 +664,7 @@
         </div>
 
         <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+            <!-- Legend -->
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <h3 class="text-xl font-semibold text-gray-900">Tshwane Community Map</h3>
                 <div class="flex flex-wrap gap-2">
@@ -686,10 +687,10 @@
                 </div>
             </div>
 
-            <!-- Leaflet Map -->
+            <!-- Map -->
             <div id="liveMap" class="rounded-lg shadow-md mb-6" style="height: 500px;"></div>
 
-            <!-- Stats + Bar Chart -->
+            <!-- Stats -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6 text-center">
                 <div class="bg-blue-50 p-4 rounded-lg shadow">
                     <p class="text-2xl font-bold text-blue-700">25</p>
@@ -709,9 +710,29 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-lg shadow p-4">
-                <h4 class="text-lg font-semibold mb-4 text-gray-900">Analytics Overview</h4>
-                <canvas id="mapStatsChart" height="80"></canvas>
+            <!-- Chart + Table -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Bar Chart -->
+                <div class="bg-white rounded-lg shadow p-4">
+                    <h4 class="text-lg font-semibold mb-4 text-gray-900">Analytics Overview</h4>
+                    <canvas id="mapStatsChart" height="120"></canvas>
+                </div>
+
+                <!-- Table -->
+                <div class="bg-white rounded-lg shadow p-4 overflow-x-auto">
+                    <h4 class="text-lg font-semibold mb-4 text-gray-900">Tag Details</h4>
+                    <table class="min-w-full border border-gray-200 text-sm">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-3 py-2 border">Type</th>
+                                <th class="px-3 py-2 border">Latitude</th>
+                                <th class="px-3 py-2 border">Longitude</th>
+                                <th class="px-3 py-2 border">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tagTableBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     `;
@@ -724,25 +745,39 @@
             attribution: "&copy; OpenStreetMap contributors"
         }).addTo(map);
 
-        // Colored marker icons
+        // Marker icons
         const redIcon = L.divIcon({ className: "custom-marker", html: '<div style="background:#dc2626;width:14px;height:14px;border-radius:50%;border:2px solid white;"></div>' });
         const blueIcon = L.divIcon({ className: "custom-marker", html: '<div style="background:#2563eb;width:14px;height:14px;border-radius:50%;border:2px solid white;"></div>' });
         const greenIcon = L.divIcon({ className: "custom-marker", html: '<div style="background:#16a34a;width:14px;height:14px;border-radius:50%;border:2px solid white;"></div>' });
         const purpleIcon = L.divIcon({ className: "custom-marker", html: '<div style="background:#7e22ce;width:14px;height:14px;border-radius:50%;border:2px solid white;"></div>' });
 
+        const tagTable = document.getElementById("tagTableBody");
+
         // Demo random markers
-        function addRandomMarkers(icon, count, label) {
+        function addRandomMarkers(icon, count, label, status) {
             for (let i = 0; i < count; i++) {
                 const lat = -25.74 + Math.random() * 0.05;
                 const lng = 28.21 + Math.random() * 0.05;
                 L.marker([lat, lng], { icon }).addTo(map).bindPopup(`${label} #${i + 1}`);
+
+                // Add row in table (limit to 15 rows so it doesn’t get too long)
+                if (i < 15) {
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td class="px-3 py-2 border">${label}</td>
+                        <td class="px-3 py-2 border">${lat.toFixed(5)}</td>
+                        <td class="px-3 py-2 border">${lng.toFixed(5)}</td>
+                        <td class="px-3 py-2 border">${status}</td>
+                    `;
+                    tagTable.appendChild(row);
+                }
             }
         }
 
-        addRandomMarkers(blueIcon, 25, "Sensor");
-        addRandomMarkers(redIcon, 7, "Incident");
-        addRandomMarkers(greenIcon, 10, "Patrol");
-        addRandomMarkers(purpleIcon, 12, "Watch Group");
+        addRandomMarkers(blueIcon, 25, "Sensor", "Online");
+        addRandomMarkers(redIcon, 7, "Incident", "Active");
+        addRandomMarkers(greenIcon, 10, "Patrol", "On Duty");
+        addRandomMarkers(purpleIcon, 12, "Watch Group", "Active");
 
         // Chart.js analytics (Bar Chart)
         const ctx = document.getElementById("mapStatsChart").getContext("2d");
@@ -758,12 +793,8 @@
             },
             options: {
                 responsive: true,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    y: { beginAtZero: true, ticks: { stepSize: 5 } }
-                }
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 5 } } }
             }
         });
     }, 50);
