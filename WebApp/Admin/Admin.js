@@ -1,62 +1,179 @@
 // Admin.js
-import { supabase, subscribeToReports } from './supabaseClient.js';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js'
+
+const SUPABASE_URL = "https://cnptukavcjqbczlzihjv.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNucHR1a2F2Y2pxYmN6bHppaGp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0OTMzODIsImV4cCI6MjA3NDA2OTM4Mn0.1l_E9OI8pKZpIA4f7arbWIl0h0WnZXGFq71Fn_vyQ04";
+
+// Initialize Supabase client
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Configuration for admin alerts
 const ALERT_CONFIG = {
-    includeFields: ['id', 'reportType', 'location', 'created_at', 'status', 'priority'],
     priorityLevels: {
         emergency: { color: '#ff4444', sound: 'emergency' },
         high: { color: '#ff8800', sound: 'high' },
         normal: { color: '#007bff', sound: 'normal' },
         low: { color: '#28a745', sound: 'low' }
-    },
-    alertPreferences: {
-        soundEnabled: true,
-        desktopNotifications: true,
-        emailNotifications: false,
-        smsNotifications: false
     }
 };
 
-// Generate comprehensive JSON alert for new reports
-export const generateReportAlert = (reportData) => {
-    const alert = {
-        type: 'new_report',
-        timestamp: new Date().toISOString(),
-        priority: calculatePriority(reportData),
-        report: {
-            id: reportData.id,
-            reportType: reportData.reportType,
-            location: reportData.location,
-            createdAt: reportData.created_at,
-            status: reportData.status || 'submitted',
-            excerpt: reportData.report?.substring(0, 100) + '...'
-        },
-        metadata: {
-            source: 'web_form',
-            userType: reportData.anon === 'yes' ? 'anonymous' : 'identified',
-            hasContactInfo: !!(reportData.email || reportData.phone),
-            urgencyScore: calculateUrgencyScore(reportData)
-        },
-        actions: [
-            { action: 'view', label: 'View Full Report', url: `/admin/reports/${reportData.id}` },
-            { action: 'assign', label: 'Assign to Team', endpoint: `/api/reports/${reportData.id}/assign` },
-            { action: 'update', label: 'Update Status', endpoint: `/api/reports/${reportData.id}/status` }
-        ],
-        analytics: {
-            similarReportsCount: 0, // Can be populated from database
-            locationTrend: null,    // Can be populated from historical data
-            typeFrequency: null     // Can be populated from historical data
+// Real-time subscription for reports
+const subscribeToReports = (callback) => {
+    return supabase
+        .channel('reports-changes')
+        .on('postgres_changes', 
+            { 
+                event: 'INSERT', 
+                schema: 'public', 
+                table: 'Database' 
+            }, 
+            (payload) => {
+                callback(payload.new);
+            }
+        )
+        .subscribe();
+};
+
+// Get all reports with pagination
+export const getAllReports = async (page = 1, pageSize = 10) => {
+    try {
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize - 1;
+
+        const { data, error, count } = await supabase
+            .from('Database')
+            .select('*', { count: 'exact' })
+            .order('created_at', { ascending: false })
+            .range(from, to);
+
+        if (error) throw error;
+        return { success: true, data, totalCount: count };
+    } catch (error) {
+        console.error('Error fetching reports:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+// Get reports by filters
+export const getFilteredReports = async (filters = {}) => {
+    try {
+        let query = supabase
+            .from('Database')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (filters.reportType) {
+            query = query.eq('reportType', filters.reportType);
         }
-    };
+        if (filters.status) {
+            query = query.eq('status', filters.status);
+        }
+        if (filters.location) {
+            query = query.ilike('location', `%${filters.location}%`);
+        }
+        if (filters.startDate && filters.endDate) {
+            query = query.gte('created_at', filters.startDate).lte('created_at', filters.endDate);
+        }
 
-    // Add optional fields if they exist
-    if (reportData.name) alert.report.reporterName = reportData.name;
-    if (reportData.email) alert.report.reporterEmail = reportData.email;
-    if (reportData.phone) alert.report.reporterPhone = reportData.phone;
-    if (reportData.iDNum) alert.report.reporterId = reportData.iDNum;
+        const { data, error } = await query;
 
-    return alert;
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error) {
+        console.error('Error fetching filtered reports:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+// Send update to user
+export const sendUserUpdate = async (updateData) => {
+    try {
+        const { data, error } = await supabase
+            .from('AdminUpdates')
+            .insert([{
+                report_id: updateData.reportId,
+                user_id: updateData.userId,
+                admin_id: updateData.adminId,
+                message: updateData.message,
+                priority: updateData.priority || 'normal',
+                update_type: updateData.updateType || 'status_update'
+            }])
+            .select();
+
+        if (error) throw error;
+
+        // Update report status if provided
+        if (updateData.newStatus) {
+            await updateReportStatus(updateData.reportId, updateData.newStatus);
+        }
+
+        return { success: true, data };
+    } catch (error) {
+        console.error('Error sending update:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+// Update report status
+export const updateReportStatus = async (reportId, newStatus) => {
+    try {
+        const { error } = await supabase
+            .from('Database')
+            .update({ status: newStatus })
+            .eq('id', reportId);
+
+        if (error) throw error;
+        return { success: true };
+    } catch (error) {
+        console.error('Error updating report status:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+// Get dashboard statistics
+export const getDashboardStats = async () => {
+    try {
+        // Total reports count
+        const { count: totalReports, error: error1 } = await supabase
+            .from('Database')
+            .select('*', { count: 'exact' });
+
+        // Reports by type
+        const { data: reportsByType, error: error2 } = await supabase
+            .from('Database')
+            .select('reportType')
+            .group('reportType');
+
+        // Reports by status
+        const { data: reportsByStatus, error: error3 } = await supabase
+            .from('Database')
+            .select('status')
+            .group('status');
+
+        // Recent reports
+        const { data: recentReports, error: error4 } = await supabase
+            .from('Database')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(5);
+
+        if (error1 || error2 || error3 || error4) {
+            throw error1 || error2 || error3 || error4;
+        }
+
+        return {
+            success: true,
+            stats: {
+                totalReports: totalReports || 0,
+                reportsByType: reportsByType || [],
+                reportsByStatus: reportsByStatus || [],
+                recentReports: recentReports || []
+            }
+        };
+    } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+        return { success: false, error: error.message };
+    }
 };
 
 // Calculate priority based on report content
@@ -81,20 +198,17 @@ const calculatePriority = (reportData) => {
 
 // Calculate urgency score (0-100)
 const calculateUrgencyScore = (reportData) => {
-    let score = 50; // Base score
-    
-    // Adjust based on report type
-    const typeScores = {
-        emergency: 40,
-        complaint: 30,
-        incident: 25,
-        feedback: -10,
-        suggestion: -15
+    let score = 50;
+    const typeScores = { 
+        emergency: 40, 
+        complaint: 30, 
+        incident: 25, 
+        feedback: -10, 
+        suggestion: -15 
     };
     
     score += typeScores[reportData.reportType] || 0;
     
-    // Adjust based on content length (longer reports might be more serious)
     if (reportData.report && reportData.report.length > 200) {
         score += 10;
     }
@@ -102,11 +216,44 @@ const calculateUrgencyScore = (reportData) => {
     return Math.max(0, Math.min(100, score));
 };
 
+// Generate comprehensive JSON alert for new reports
+export const generateReportAlert = (reportData) => {
+    const alert = {
+        type: 'new_report',
+        timestamp: new Date().toISOString(),
+        priority: calculatePriority(reportData),
+        report: {
+            id: reportData.id,
+            reportType: reportData.reportType,
+            location: reportData.location,
+            createdAt: reportData.created_at,
+            status: reportData.status || 'submitted',
+            excerpt: reportData.report?.substring(0, 100) + (reportData.report?.length > 100 ? '...' : '')
+        },
+        metadata: {
+            source: 'web_form',
+            userType: reportData.anon === 'yes' ? 'anonymous' : 'identified',
+            hasContactInfo: !!(reportData.email || reportData.phone),
+            urgencyScore: calculateUrgencyScore(reportData)
+        },
+        actions: [
+            { action: 'view', label: 'View Full Report', url: `#report-${reportData.id}` },
+            { action: 'update', label: 'Update Status', endpoint: `#update-${reportData.id}` }
+        ]
+    };
+
+    // Add optional fields if they exist
+    if (reportData.name) alert.report.reporterName = reportData.name;
+    if (reportData.email) alert.report.reporterEmail = reportData.email;
+    if (reportData.iDNum) alert.report.reporterId = reportData.iDNum;
+
+    return alert;
+};
+
 // Real-time alerts with JSON payload
 export const listenForNewReportsWithAlerts = (callback, options = {}) => {
     return subscribeToReports(async (newReport) => {
         try {
-            // Generate comprehensive alert JSON
             const alertJson = generateReportAlert(newReport);
             
             // Enhance with additional data if needed
@@ -122,61 +269,26 @@ export const listenForNewReportsWithAlerts = (callback, options = {}) => {
                 triggerDesktopNotification(alertJson);
             }
             
-            if (options.triggerSound) {
-                playAlertSound(alertJson.priority);
-            }
-            
         } catch (error) {
             console.error('Error processing new report alert:', error);
         }
     });
 };
 
-// Trigger browser notification
-const triggerDesktopNotification = (alertJson) => {
-    if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification(`New ${alertJson.report.reportType} Report`, {
-            body: `${alertJson.report.location} - ${alertJson.report.excerpt}`,
-            icon: '/notification-icon.png',
-            tag: `report-${alertJson.report.id}`,
-            data: alertJson
-        });
-    }
-};
-
-// Play alert sound based on priority
-const playAlertSound = (priority) => {
-    const soundMap = {
-        emergency: '/sounds/emergency-alert.mp3',
-        high: '/sounds/high-priority.mp3',
-        normal: '/sounds/new-report.mp3',
-        low: '/sounds/low-priority.mp3'
-    };
-    
-    const audio = new Audio(soundMap[priority] || soundMap.normal);
-    audio.play().catch(() => console.log('Audio play failed - user may not have interacted with page'));
-};
-
 // Get analytics data for a report
 const getReportAnalytics = async (report) => {
     try {
-        const { data: similarReports } = await supabase
+        // Get similar reports count
+        const { count: similarReports } = await supabase
             .from('Database')
-            .select('id')
+            .select('*', { count: 'exact' })
             .eq('reportType', report.reportType)
             .eq('location', report.location)
             .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
 
-        const { data: locationTrend } = await supabase
-            .from('Database')
-            .select('created_at')
-            .eq('location', report.location)
-            .order('created_at', { ascending: false })
-            .limit(10);
-
         return {
-            similarReportsCount: similarReports?.length || 0,
-            locationTrend: locationTrend?.map(item => item.created_at) || [],
+            similarReportsCount: similarReports || 0,
+            locationTrend: [],
             typeFrequency: await getReportTypeFrequency(report.reportType)
         };
     } catch (error) {
@@ -191,13 +303,36 @@ const getReportAnalytics = async (report) => {
 
 // Get report type frequency
 const getReportTypeFrequency = async (reportType) => {
-    const { count } = await supabase
-        .from('Database')
-        .select('id', { count: 'exact' })
-        .eq('reportType', reportType)
-        .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
-    
-    return count || 0;
+    try {
+        const { count } = await supabase
+            .from('Database')
+            .select('*', { count: 'exact' })
+            .eq('reportType', reportType)
+            .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+        
+        return count || 0;
+    } catch (error) {
+        return 0;
+    }
+};
+
+// Trigger browser notification
+const triggerDesktopNotification = (alertJson) => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(`New ${alertJson.report.reportType} Report`, {
+            body: `${alertJson.report.location} - ${alertJson.report.excerpt}`,
+            icon: '/notification-icon.png',
+            tag: `report-${alertJson.report.id}`
+        });
+    } else if ('Notification' in window && Notification.permission !== 'denied') {
+        Notification.requestPermission().then(permission => {
+            if (permission === 'granted') {
+                new Notification(`New ${alertJson.report.reportType} Report`, {
+                    body: `${alertJson.report.location} - ${alertJson.report.excerpt}`
+                });
+            }
+        });
+    }
 };
 
 // Export comprehensive JSON report for admin
@@ -243,16 +378,7 @@ export const exportComprehensiveReport = async (options = {}) => {
                     return acc;
                 }, {})
             },
-            analytics: {
-                averageResponseTime: await calculateAverageResponseTime(),
-                resolutionRate: await calculateResolutionRate(),
-                trendAnalysis: await generateTrendAnalysis(reports)
-            },
-            detailedData: reports.map(report => ({
-                ...report,
-                adminUpdates: await getReportUpdates(report.id),
-                timeline: await generateReportTimeline(report.id)
-            }))
+            reports: reports
         };
 
         return { 
@@ -265,93 +391,6 @@ export const exportComprehensiveReport = async (options = {}) => {
         console.error('Error exporting comprehensive report:', error);
         return { success: false, error: error.message };
     }
-};
-
-// Get updates for a specific report
-const getReportUpdates = async (reportId) => {
-    const { data } = await supabase
-        .from('AdminUpdates')
-        .select('*')
-        .eq('report_id', reportId)
-        .order('created_at', { ascending: true });
-    return data || [];
-};
-
-// Generate report timeline
-const generateReportTimeline = async (reportId) => {
-    const report = await supabase
-        .from('Database')
-        .select('created_at, status')
-        .eq('id', reportId)
-        .single();
-
-    const updates = await getReportUpdates(reportId);
-
-    return [
-        {
-            event: 'report_submitted',
-            timestamp: report.data.created_at,
-            status: report.data.status
-        },
-        ...updates.map(update => ({
-            event: 'admin_update',
-            timestamp: update.created_at,
-            message: update.message,
-            admin: update.admin_id
-        }))
-    ];
-};
-
-// Calculate average response time
-const calculateAverageResponseTime = async () => {
-    // This would require additional database structure for response tracking
-    return "2.5 hours"; // Placeholder
-};
-
-// Calculate resolution rate
-const calculateResolutionRate = async () => {
-    const { count: total } = await supabase
-        .from('Database')
-        .select('id', { count: 'exact' });
-
-    const { count: resolved } = await supabase
-        .from('Database')
-        .select('id', { count: 'exact' })
-        .eq('status', 'resolved');
-
-    return total > 0 ? (resolved / total * 100).toFixed(1) + '%' : '0%';
-};
-
-// Generate trend analysis
-const generateTrendAnalysis = (reports) => {
-    const dailyCounts = reports.reduce((acc, report) => {
-        const date = new Date(report.created_at).toLocaleDateString();
-        acc[date] = (acc[date] || 0) + 1;
-        return acc;
-    }, {});
-
-    return {
-        dailyCounts,
-        peakHours: calculatePeakHours(reports),
-        commonLocations: Object.entries(dailyCounts)
-            .sort(([,a], [,b]) => b - a)
-            .slice(0, 5)
-            .reduce((obj, [key, val]) => ({ ...obj, [key]: val }), {})
-    };
-};
-
-// Calculate peak hours
-const calculatePeakHours = (reports) => {
-    const hourCounts = reports.reduce((acc, report) => {
-        const hour = new Date(report.created_at).getHours();
-        acc[hour] = (acc[hour] || 0) + 1;
-        return acc;
-    }, {});
-
-    return Object.entries(hourCounts)
-        .sort(([,a], [,b]) => b - a)
-        .slice(0, 3)
-        .map(([hour]) => `${hour}:00`);
 };
 
 // Download JSON file
@@ -367,4 +406,57 @@ export const downloadJsonFile = (data, filename) => {
     URL.revokeObjectURL(url);
 };
 
-// ... Keep all the previous functions from the original adminDashboard.js
+// Initialize admin dashboard
+export const initializeAdminDashboard = async () => {
+    try {
+        // Load initial stats
+        const stats = await getDashboardStats();
+        if (stats.success) {
+            updateDashboardUI(stats.stats);
+        }
+
+        // Set up real-time alerts
+        listenForNewReportsWithAlerts((alert) => {
+            displayNewReportAlert(alert);
+        }, {
+            triggerDesktopNotification: true,
+            includeAnalytics: true
+        });
+
+        console.log('Admin dashboard initialized successfully');
+    } catch (error) {
+        console.error('Error initializing admin dashboard:', error);
+    }
+};
+
+// UI update functions (to be implemented in frontend)
+const updateDashboardUI = (stats) => {
+    console.log('Dashboard stats:', stats);
+    // Implement UI update logic here
+};
+
+const displayNewReportAlert = (alert) => {
+    console.log('New report alert:', alert);
+    // Implement alert display logic here
+};
+
+// Auto-initialize if running in browser
+if (typeof window !== 'undefined') {
+    window.Admin = { 
+        getAllReports, 
+        getFilteredReports, 
+        sendUserUpdate, 
+        updateReportStatus, 
+        getDashboardStats,
+        generateReportAlert,
+        listenForNewReportsWithAlerts,
+        exportComprehensiveReport,
+        downloadJsonFile,
+        initializeAdminDashboard
+    };
+    
+    // Auto-initialize if admin page
+    if (window.location.pathname.includes('admin')) {
+        initializeAdminDashboard();
+    }
+}
