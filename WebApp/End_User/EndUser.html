@@ -6,6 +6,7 @@
     <title>NotiZAR - Community Protection</title>
     <script src="https://unpkg.com/lucide@0.263.1/dist/umd/lucide.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <style>
@@ -41,6 +42,7 @@
             background: var(--light);
             color: var(--dark);
             line-height: 1.5;
+            padding-top: 70px; /* Space for fixed header */
         }
 
         /* Layout */
@@ -48,17 +50,51 @@
         .container { max-width: 1200px; margin: 0 auto; padding: var(--space-lg); }
         main.container { flex: 1; }
 
-        /* Header & Footer */
-        .header, .footer { background: var(--white); box-shadow: var(--shadow); }
-        .header-content, .footer-content { display: flex; justify-content: space-between; align-items: center; }
+        /* Fixed Header */
+        .header { 
+            background: var(--white); 
+            box-shadow: var(--shadow); 
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            padding: 0.5rem 0;
+        }
+        
+        .header-content { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--space-lg);
+        }
+        
         .logo { display: flex; align-items: center; gap: var(--space-md); }
-        .logo-icon { background: var(--primary); padding: var(--space-sm); border-radius: var(--radius); }
+        .logo-icon { 
+            background: var(--primary); 
+            padding: var(--space-sm); 
+            border-radius: var(--radius); 
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .logo-icon img {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+        }
+        
         .nav { display: flex; gap: var(--space-sm); }
         .footer { background: var(--dark); color: var(--white); padding: var(--space-lg) 0; }
 
         /* Cards */
         .card { background: var(--white); border-radius: var(--radius-lg); padding: var(--space-lg); box-shadow: var(--shadow); transition: transform 0.3s ease, box-shadow 0.3s ease; }
-        .card:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); }
+        .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
         .card-header { padding-bottom: var(--space-md); border-bottom: 1px solid var(--gray-light); margin-bottom: var(--space-md); }
 
         /* Buttons */
@@ -92,7 +128,7 @@
         .location-button:hover { background: var(--primary-dark); }
 
         /* Map & Grid */
-        .map-container { height: 500px; border-radius: var(--radius-lg); margin-top: var(--space-lg); }
+        .map-container { height: 400px; border-radius: var(--radius-lg); margin-top: var(--space-lg); }
         .grid { display: grid; gap: var(--space-lg); }
         .grid-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
         .grid-4 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
@@ -138,6 +174,79 @@
         @keyframes pulse { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(220, 38, 38, 0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); } }
         .new-marker .leaflet-marker-icon { animation: pulse 1.5s infinite; }
 
+        /* Sidebar Styles */
+        .sidebar {
+            position: fixed;
+            top: 70px;
+            left: 0;
+            height: calc(100vh - 70px);
+            width: 250px;
+            background: var(--white);
+            box-shadow: var(--shadow-lg);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            z-index: 999;
+            overflow-y: auto;
+            padding: var(--space-lg);
+        }
+        
+        .sidebar.active {
+            transform: translateX(0);
+        }
+        
+        .sidebar-menu {
+            list-style: none;
+        }
+        
+        .sidebar-menu li {
+            margin-bottom: var(--space-sm);
+        }
+        
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            padding: var(--space-sm) var(--space-md);
+            color: var(--dark);
+            text-decoration: none;
+            border-radius: var(--radius);
+            transition: background-color 0.3s;
+        }
+        
+        .sidebar-menu a:hover {
+            background-color: var(--gray-light);
+        }
+        
+        .sidebar-menu a i {
+            margin-right: var(--space-sm);
+            width: 20px;
+            text-align: center;
+        }
+        
+        .sidebar-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--dark);
+        }
+        
+        /* Overlay for sidebar */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 998;
+            display: none;
+        }
+        
+        .sidebar-overlay.active {
+            display: block;
+        }
+
         /* VIDEO SURVEILLANCE STYLES */
         
         /* Video Surveillance Container */
@@ -159,7 +268,7 @@
         }
         
         .video-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-2px);
             box-shadow: var(--shadow-lg);
             border-color: var(--camera-yellow);
         }
@@ -448,7 +557,122 @@
             margin-bottom: var(--space-lg);
         }
         
+        /* AI Model Performance Bars */
+        .performance-bars {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+        }
+        
+        .performance-bar {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+        
+        .performance-label {
+            width: 100px;
+            font-weight: 600;
+        }
+        
+        .performance-value {
+            width: 50px;
+            text-align: right;
+            font-weight: 600;
+        }
+        
+        .performance-bar-container {
+            flex: 1;
+            height: 20px;
+            background: var(--gray-light);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .performance-bar-fill {
+            height: 100%;
+            border-radius: 10px;
+        }
+        
+        .accuracy { background: var(--primary); }
+        .precision { background: var(--success); }
+        .recall { background: var(--ai-purple); }
+        
+        /* Tag Details - Shorter */
+        .tag-details-container {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid var(--gray-light);
+            border-radius: var(--radius);
+        }
+        
+        /* Map Markers Side by Side */
+        .marker-stats {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: var(--space-sm);
+            margin-bottom: var(--space-md);
+        }
+        
+        .marker-stat {
+            text-align: center;
+            padding: var(--space-sm);
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+        
+        .marker-stat-number {
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+        
+        .marker-stat-label {
+            font-size: 0.75rem;
+            color: var(--gray);
+        }
+        
+        /* Side by side layouts */
+        .side-by-side {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-lg);
+        }
+        
+        .side-by-side-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-lg);
+        }
+        
+        /* Smaller graphs */
+        .small-chart {
+            height: 200px !important;
+        }
+        
+        /* Minimalistic AI Dashboard */
+        .ai-dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-lg);
+        }
+        
+        .ai-minimal-card {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--ai-purple);
+        }
+        
         /* Responsive Design */
+        @media (max-width: 1024px) {
+            .side-by-side, .side-by-side-3, .ai-dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+        
         @media (max-width: 768px) {
             .video-surveillance-container {
                 grid-template-columns: 1fr;
@@ -471,7 +695,21 @@
             }
             
             .nav {
-                flex-wrap: wrap;
+                display: none;
+            }
+            
+            .sidebar-toggle {
+                display: block;
+            }
+            
+            .marker-stats {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .marker-stats {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
         
@@ -556,6 +794,7 @@
         .health-warning { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
         .health-critical { background: rgba(220, 38, 38, 0.1); color: var(--danger); }
     </style>
+       
     <style>
         
         /* Tailwind-like CSS */
@@ -1770,11 +2009,25 @@
         @keyframes pulse { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(220, 38, 38, 0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); } }
         .new-marker .leaflet-marker-icon { animation: pulse 1.5s infinite; }
         
-    </style>    
+    </style>
 </head>
 <body>
     <div id="app" class="min-h-screen bg-gray-50">
         <!-- Header will be inserted here -->
+        <div class="sidebar-overlay"></div>
+        <aside class="sidebar">
+            <ul class="sidebar-menu">
+                <li><a href="#" onclick="navigateTo('home'); closeSidebar()"><i class="fas fa-home"></i> Home</a></li>
+                <li><a href="#" onclick="navigateTo('report'); closeSidebar()"><i class="fas fa-exclamation-triangle"></i> Report Emergency</a></li>
+                <li><a href="#" onclick="navigateTo('community'); closeSidebar()"><i class="fas fa-users"></i> Community</a></li>
+                <li><a href="#" onclick="navigateTo('map'); closeSidebar()"><i class="fas fa-map"></i> Live Map</a></li>
+                <li><a href="#" onclick="navigateTo('video'); closeSidebar()"><i class="fas fa-video"></i> Video Surveillance</a></li>
+                <li><a href="#" onclick="navigateTo('ai'); closeSidebar()"><i class="fas fa-brain"></i> AI Predictions</a></li>
+                <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+                <li><a href="#"><i class="fas fa-question-circle"></i> Help</a></li>
+                <li><a href="#"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+            </ul>
+        </aside>
         <main class="flex-1">
             <!-- Content will be inserted here -->
         </main>
@@ -1942,55 +2195,73 @@
             render();
         }
 
+        function toggleSidebar() {
+            document.querySelector('.sidebar').classList.toggle('active');
+            document.querySelector('.sidebar-overlay').classList.toggle('active');
+        }
+
+        function closeSidebar() {
+            document.querySelector('.sidebar').classList.remove('active');
+            document.querySelector('.sidebar-overlay').classList.remove('active');
+        }
+
         function renderHeader() {
             const header = document.createElement('header');
-            header.className = 'bg-white shadow-lg border-b border-gray-200';
+            header.className = 'header';
             header.innerHTML = `
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div class="flex justify-between items-center h-16">
-                        <div class="flex items-center space-x-3">
-                            <div class="bg-blue-600 p-2 rounded-lg">
-                                <i data-lucide="shield" class="h-8 w-8 text-white"></i>
+                <div class="header-content">
+                    <div class="flex items-center space-x-3">
+                        <button class="sidebar-toggle" onclick="toggleSidebar()">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                        <div class="logo">
+                            <div class="logo-icon">
+                                <!-- Logo image would go here -->
+                                <i class="fas fa-shield-alt text-white"></i>
                             </div>
                             <div>
                                 <h1 class="text-xl font-bold text-gray-900">NotiZAR</h1>
                                 <p class="text-sm text-gray-600">Community Protection</p>
                             </div>
                         </div>
+                    </div>
 
-                        <nav class="hidden md:flex items-center space-x-1">
-                            <button onclick="navigateTo('home')" class="px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeView === 'home' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:text-blue-600 hover:bg-gray-100'}">
-                                <i data-lucide="home" class="h-4 w-4 inline mr-2"></i>
-                                Home
-                            </button>
-                            <button onclick="navigateTo('report')" class="px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeView === 'report' ? 'bg-red-100 text-red-700' : 'text-gray-700 hover:text-red-600 hover:bg-gray-100'}">
-                                <i data-lucide="alert-triangle" class="h-4 w-4 inline mr-2"></i>
-                                Report Emergency
-                            </button>
-                            <button onclick="navigateTo('community')" class="px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeView === 'community' ? 'bg-green-100 text-green-700' : 'text-gray-700 hover:text-green-600 hover:bg-gray-100'}">
-                                <i data-lucide="users" class="h-4 w-4 inline mr-2"></i>
-                                Community
-                            </button>
-                            <button onclick="navigateTo('map')" class="px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeView === 'map' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-100'}">
-                                <i data-lucide="map" class="h-4 w-4 inline mr-2"></i>
-                                Live Map
-                            </button>
-                            <button onclick="navigateTo('video')" class="px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeView === 'video' ? 'bg-yellow-100 text-yellow-700' : 'text-gray-700 hover:text-yellow-600 hover:bg-gray-100'}">
-                                <i data-lucide="video" class="h-4 w-4 inline mr-2"></i>
-                                Video Surveillance
-                            </button>
-                            <button onclick="navigateTo('ai')" class="px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeView === 'ai' ? 'bg-purple-100 text-purple-700' : 'text-gray-700 hover:text-purple-600 hover:bg-gray-100'}">
-                                <i data-lucide="brain" class="h-4 w-4 inline mr-2"></i>
-                                AI Predictions
-                            </button>
-                        </nav>
+                    <nav class="nav">
+                        <button onclick="navigateTo('home')" class="px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeView === 'home' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:text-blue-600 hover:bg-gray-100'}">
+                            <i class="fas fa-home mr-2"></i>
+                            Home
+                        </button>
+                        <button onclick="navigateTo('report')" class="px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeView === 'report' ? 'bg-red-100 text-red-700' : 'text-gray-700 hover:text-red-600 hover:bg-gray-100'}">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            Report Emergency
+                        </button>
+                        <button onclick="navigateTo('community')" class="px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeView === 'community' ? 'bg-green-100 text-green-700' : 'text-gray-700 hover:text-green-600 hover:bg-gray-100'}">
+                            <i class="fas fa-users mr-2"></i>
+                            Community
+                        </button>
+                        <button onclick="navigateTo('map')" class="px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeView === 'map' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-100'}">
+                            <i class="fas fa-map mr-2"></i>
+                            Live Map
+                        </button>
+                        <button onclick="navigateTo('video')" class="px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeView === 'video' ? 'bg-yellow-100 text-yellow-700' : 'text-gray-700 hover:text-yellow-600 hover:bg-gray-100'}">
+                            <i class="fas fa-video mr-2"></i>
+                            Video Surveillance
+                        </button>
+                        <button onclick="navigateTo('ai')" class="px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeView === 'ai' ? 'bg-purple-100 text-purple-700' : 'text-gray-700 hover:text-purple-600 hover:bg-gray-100'}">
+                            <i class="fas fa-brain mr-2"></i>
+                            AI Predictions
+                        </button>
+                    </nav>
 
-                        <div class="md:hidden">
-                            <button class="text-gray-700 p-2">
-                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                                </svg>
-                            </button>
+                    <div class="flex items-center space-x-4">
+                        <button class="text-gray-700 hover:text-blue-600">
+                            <i class="fas fa-bell"></i>
+                        </button>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+                                U
+                            </div>
+                            <span class="text-sm font-medium">User</span>
                         </div>
                     </div>
                 </div>
@@ -2000,17 +2271,17 @@
 
         function renderFooter() {
             const footer = document.createElement('footer');
-            footer.className = 'bg-gray-900 text-white py-12';
+            footer.className = 'footer';
             footer.innerHTML = `
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="container">
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
                         <div class="col-span-1 md:col-span-2">
                             <div class="flex items-center space-x-3 mb-4">
                                 <div class="bg-blue-600 p-2 rounded-lg">
-                                    <i data-lucide="shield" class="h-6 w-6 text-white"></i>
+                                    <i class="fas fa-shield-alt text-white"></i>
                                 </div>
                                 <div>
-                                    <h3 class="text-lg font-bold">NotiZAR</h3>
+                                    <h3 class="text-lg font-bold text-white">NotiZAR</h3>
                                     <p class="text-sm text-gray-400">Community Protection</p>
                                 </div>
                             </div>
@@ -2029,7 +2300,7 @@
                         </div>
 
                         <div>
-                            <h4 class="text-lg font-semibold mb-4">Quick Links</h4>
+                            <h4 class="text-lg font-semibold mb-4 text-white">Quick Links</h4>
                             <ul class="space-y-2 text-gray-400">
                                 <li><a href="#" class="hover:text-white transition-colors">Report Emergency</a></li>
                                 <li><a href="#" class="hover:text-white transition-colors">Join Community</a></li>
@@ -2039,18 +2310,18 @@
                         </div>
 
                         <div>
-                            <h4 class="text-lg font-semibold mb-4">Contact</h4>
+                            <h4 class="text-lg font-semibold mb-4 text-white">Contact</h4>
                             <div class="space-y-3 text-gray-400">
                                 <div class="flex items-center">
-                                    <i data-lucide="phone" class="h-4 w-4 mr-2"></i>
+                                    <i class="fas fa-phone mr-2"></i>
                                     <span>012 358 0000</span>
                                 </div>
                                 <div class="flex items-center">
-                                    <i data-lucide="mail" class="h-4 w-4 mr-2"></i>
+                                    <i class="fas fa-envelope mr-2"></i>
                                     <span>info@NotiZAR.co.za</span>
                                 </div>
                                 <div class="flex items-center">
-                                    <i data-lucide="map-pin" class="h-4 w-4 mr-2"></i>
+                                    <i class="fas fa-map-marker-alt mr-2"></i>
                                     <span>City of Tshwane<br>Pretoria, South Africa</span>
                                 </div>
                             </div>
@@ -2062,8 +2333,8 @@
                             © 2025 NotiZAR. All rights reserved. | Privacy Policy | Terms of Service
                         </div>
                         <div class="flex space-x-6 text-sm text-gray-400">
-                            <span>🔒 Encrypted & Secure</span>
-                            <span>📱 Data-Free Access</span>
+                            <span><i class="fas fa-lock mr-1"></i> Encrypted & Secure</span>
+                            <span><i class="fas fa-mobile-alt mr-1"></i> Data-Free Access</span>
                         </div>
                     </div>
                 </div>
@@ -2073,7 +2344,7 @@
 
         function renderHome() {
             const main = document.createElement('main');
-            main.className = 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8';
+            main.className = 'container';
             main.innerHTML = `
                 <div class="mb-8">
                     <h2 class="text-2xl font-bold text-gray-900">Community Safety Dashboard</h2>
@@ -2088,7 +2359,7 @@
                                 <p class="text-3xl font-bold text-gray-900">2</p>
                             </div>
                             <div class="bg-red-100 p-3 rounded-lg">
-                                <i data-lucide="alert-triangle" class="h-6 w-6 text-red-600"></i>
+                                <i class="fas fa-exclamation-triangle text-red-600"></i>
                             </div>
                         </div>
                         <p class="text-sm text-gray-500 mt-2">In Hatfield & Sunnyside</p>
@@ -2101,7 +2372,7 @@
                                 <p class="text-3xl font-bold text-gray-900">143</p>
                             </div>
                             <div class="bg-green-100 p-3 rounded-lg">
-                                <i data-lucide="radio" class="h-6 w-6 text-green-600"></i>
+                                <i class="fas fa-wifi text-green-600"></i>
                             </div>
                         </div>
                         <p class="text-sm text-gray-500 mt-2">4 zones covered</p>
@@ -2114,7 +2385,7 @@
                                 <p class="text-3xl font-bold text-gray-900">8.4 min</p>
                             </div>
                             <div class="bg-blue-100 p-3 rounded-lg">
-                                <i data-lucide="clock" class="h-6 w-6 text-blue-600"></i>
+                                <i class="fas fa-clock text-blue-600"></i>
                             </div>
                         </div>
                         <p class="text-sm text-gray-500 mt-2">Average this month</p>
@@ -2127,15 +2398,15 @@
                                 <p class="text-3xl font-bold text-gray-900">14</p>
                             </div>
                             <div class="bg-purple-100 p-3 rounded-lg">
-                                <i data-lucide="shield-check" class="h-6 w-6 text-purple-600"></i>
+                                <i class="fas fa-shield-check text-purple-600"></i>
                             </div>
                         </div>
                         <p class="text-sm text-gray-500 mt-2">Incidents this month</p>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-                    <div class="bg-white rounded-xl shadow-md p-6 lg:col-span-2">
+                <div class="side-by-side gap-8 mb-8">
+                    <div class="bg-white rounded-xl shadow-md p-6">
                         <div class="flex justify-between items-center mb-6">
                             <h3 class="text-xl font-semibold text-gray-900">Recent Activity</h3>
                             <button class="text-blue-600 hover:text-blue-800 text-sm font-medium">View All</button>
@@ -2147,10 +2418,10 @@
                                         <div class="flex items-start space-x-3">
                                             <div class="mt-1">
                                                 ${item.type === 'sensor_alert' ? 
-                                                    '<div class="bg-red-100 p-2 rounded-full"><i data-lucide="radio" class="h-4 w-4 text-red-600"></i></div>' : 
+                                                    '<div class="bg-red-100 p-2 rounded-full"><i class="fas fa-wifi text-red-600"></i></div>' : 
                                                     item.type === 'community_report' ? 
-                                                    '<div class="bg-blue-100 p-2 rounded-full"><i data-lucide="users" class="h-4 w-4 text-blue-600"></i></div>' : 
-                                                    '<div class="bg-green-100 p-2 rounded-full"><i data-lucide="shield-check" class="h-4 w-4 text-green-600"></i></div>'
+                                                    '<div class="bg-blue-100 p-2 rounded-full"><i class="fas fa-users text-blue-600"></i></div>' : 
+                                                    '<div class="bg-green-100 p-2 rounded-full"><i class="fas fa-shield-check text-green-600"></i></div>'
                                                 }
                                             </div>
                                             <div>
@@ -2185,7 +2456,7 @@
                                             </div>
                                         </div>
                                         <button class="text-blue-600 hover:text-blue-800">
-                                            <i data-lucide="chevron-right" class="h-5 w-5"></i>
+                                            <i class="fas fa-chevron-right"></i>
                                         </button>
                                     </div>
                                 </div>
@@ -2225,11 +2496,11 @@
                         <p class="mb-6">See something that doesn't look right? Report it immediately and help prevent cable theft in your community.</p>
                         <div class="flex flex-col sm:flex-row gap-4">
                             <button onclick="navigateTo('report')" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center">
-                                <i data-lucide="alert-triangle" class="h-5 w-5 mr-2"></i>
+                                <i class="fas fa-exclamation-triangle mr-2"></i>
                                 Emergency Report
                             </button>
                             <button class="bg-white hover:bg-gray-100 text-blue-900 font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center">
-                                <i data-lucide="clipboard-list" class="h-5 w-5 mr-2"></i>
+                                <i class="fas fa-clipboard-list mr-2"></i>
                                 Non-Emergency Report
                             </button>
                         </div>
@@ -2241,112 +2512,114 @@
 
         function renderReport() {
             const main = document.createElement('main');
-            main.className = 'max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8';
+            main.className = 'container';
             main.innerHTML = `
                 <div class="mb-8 text-center">
                     <h2 class="text-3xl font-bold text-gray-900">Report an Incident</h2>
                     <p class="text-gray-600">Help keep your community safe by reporting suspicious activity or emergencies</p>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-md overflow-hidden">
-                    <div class="bg-red-600 p-6 text-white">
-                        <div class="flex items-center">
-                            <i data-lucide="alert-triangle" class="h-8 w-8 mr-3"></i>
-                            <h3 class="text-xl font-semibold">Emergency Reporting</h3>
-                        </div>
-                        <p class="mt-2">For crimes in progress or immediate danger, call emergency services first</p>
-                    </div>
-
-                    <div class="p-6">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                            <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-                                <i data-lucide="phone" class="h-10 w-10 text-red-600 mx-auto mb-2"></i>
-                                <h4 class="font-semibold text-red-800">Emergency Services</h4>
-                                <p class="text-red-600 font-mono text-xl mt-2">10177</p>
+                <div class="side-by-side gap-8">
+                    <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                        <div class="bg-red-600 p-6 text-white">
+                            <div class="flex items-center">
+                                <i class="fas fa-exclamation-triangle text-2xl mr-3"></i>
+                                <h3 class="text-xl font-semibold">Emergency Reporting</h3>
                             </div>
-
-                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                                <i data-lucide="shield" class="h-10 w-10 text-blue-600 mx-auto mb-2"></i>
-                                <h4 class="font-semibold text-blue-800">NotiZAR Hotline</h4>
-                                <p class="text-blue-600 font-mono text-xl mt-2">012 358 9999</p>
-                            </div>
+                            <p class="mt-2">For crimes in progress or immediate danger, call emergency services first</p>
                         </div>
 
-                        <div class="border-t border-gray-200 pt-6">
-                            <h4 class="text-lg font-semibold text-gray-900 mb-4">Report Non-Emergency Incident</h4>
-                            <form id="reportForm" class="space-y-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Incident Type</label>
-                                    <select id="incidentType" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
-                                        <option>Suspicious Activity</option>
-                                        <option>Attempted Cable Theft</option>
-                                        <option>Vandalism</option>
-                                        <option>Other</option>
-                                    </select>
+                        <div class="p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                                    <i class="fas fa-phone text-3xl text-red-600 mx-auto mb-2"></i>
+                                    <h4 class="font-semibold text-red-800">Emergency Services</h4>
+                                    <p class="text-red-600 font-mono text-xl mt-2">10177</p>
                                 </div>
 
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                                    <input id="locationInput" type="text" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" placeholder="Enter location or address">
-                                    <button type="button" id="getLocationBtn" class="location-button">
-                                        <i data-lucide="map-pin" class="h-4 w-4"></i>
-                                        Use My Location
-                                    </button>
+                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                                    <i class="fas fa-shield-alt text-3xl text-blue-600 mx-auto mb-2"></i>
+                                    <h4 class="font-semibold text-blue-800">NotiZAR Hotline</h4>
+                                    <p class="text-blue-600 font-mono text-xl mt-2">012 358 9999</p>
                                 </div>
+                            </div>
 
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                                    <textarea id="descriptionInput" rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" placeholder="Describe what you saw"></textarea>
-                                </div>
-
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="border-t border-gray-200 pt-6">
+                                <h4 class="text-lg font-semibold text-gray-900 mb-4">Report Non-Emergency Incident</h4>
+                                <form id="reportForm" class="space-y-4">
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Your Name (Optional)</label>
-                                        <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Incident Type</label>
+                                        <select id="incidentType" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                                            <option>Suspicious Activity</option>
+                                            <option>Attempted Cable Theft</option>
+                                            <option>Vandalism</option>
+                                            <option>Other</option>
+                                        </select>
                                     </div>
 
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Contact (Optional)</label>
-                                        <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                                        <input id="locationInput" type="text" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" placeholder="Enter location or address">
+                                        <button type="button" id="getLocationBtn" class="location-button">
+                                            <i class="fas fa-map-marker-alt mr-1"></i>
+                                            Use My Location
+                                        </button>
                                     </div>
-                                </div>
 
-                                <div class="flex items-center">
-                                    <input type="checkbox" id="anonymous" class="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded">
-                                    <label for="anonymous" class="ml-2 block text-sm text-gray-700">Report anonymously</label>
-                                </div>
-
-                                <div class="pt-4">
-                                    <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors">
-                                        Submit Report
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-md p-6 mt-8">
-                    <h3 class="text-xl font-semibold text-gray-900 mb-4">Recent Incidents in Your Area</h3>
-                    <div class="space-y-4">
-                        ${recentIncidents.map(incident => `
-                            <div class="border border-gray-200 rounded-lg p-4">
-                                <div class="flex justify-between items-start">
                                     <div>
-                                        <h4 class="font-medium text-gray-900">${incident.type}</h4>
-                                        <p class="text-sm text-gray-600">${incident.location}</p>
-                                        <div class="flex items-center mt-2">
-                                            <span class="text-xs ${incident.status === 'resolved' ? 'bg-green-100 text-green-800' : incident.status === 'investigating' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'} px-2 py-1 rounded-full">${incident.status}</span>
-                                            <span class="text-xs text-gray-500 ml-2">${incident.timestamp}</span>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                        <textarea id="descriptionInput" rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" placeholder="Describe what you saw"></textarea>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Your Name (Optional)</label>
+                                            <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Contact (Optional)</label>
+                                            <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
                                         </div>
                                     </div>
-                                    <div class="text-right">
-                                        <p class="text-sm font-mono text-gray-900">${incident.id}</p>
-                                        <p class="text-xs text-gray-500">Response: ${incident.responseTime}</p>
+
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="anonymous" class="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded">
+                                        <label for="anonymous" class="ml-2 block text-sm text-gray-700">Report anonymously</label>
+                                    </div>
+
+                                    <div class="pt-4">
+                                        <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors">
+                                            Submit Report
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-4">Recent Incidents in Your Area</h3>
+                        <div class="space-y-4">
+                            ${recentIncidents.map(incident => `
+                                <div class="border border-gray-200 rounded-lg p-4">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <h4 class="font-medium text-gray-900">${incident.type}</h4>
+                                            <p class="text-sm text-gray-600">${incident.location}</p>
+                                            <div class="flex items-center mt-2">
+                                                <span class="text-xs ${incident.status === 'resolved' ? 'bg-green-100 text-green-800' : incident.status === 'investigating' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'} px-2 py-1 rounded-full">${incident.status}</span>
+                                                <span class="text-xs text-gray-500 ml-2">${incident.timestamp}</span>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-sm font-mono text-gray-900">${incident.id}</p>
+                                            <p class="text-xs text-gray-500">Response: ${incident.responseTime}</p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        `).join('')}
+                            `).join('')}
+                        </div>
                     </div>
                 </div>
             `;
@@ -2420,16 +2693,11 @@
             const notification = document.createElement('div');
             notification.className = `notification ${type}`;
             notification.innerHTML = `
-                <i data-lucide="${type === 'success' ? 'check-circle' : 'alert-circle'}" class="icon"></i>
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
                 <span>${message}</span>
             `;
             
             document.body.appendChild(notification);
-            
-            // Initialize icons
-            if (window.lucide) {
-                lucide.createIcons();
-            }
             
             // Remove notification after 5 seconds
             setTimeout(() => {
@@ -2439,7 +2707,7 @@
 
         function renderCommunity() {
             const main = document.createElement('main');
-            main.className = 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8';
+            main.className = 'container';
             main.innerHTML = `
                 <div class="mb-8 text-center">
                     <h2 class="text-3xl font-bold text-gray-900">Community Watch</h2>
@@ -2464,39 +2732,14 @@
                     </div>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-md p-6 mb-8">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-xl font-semibold text-gray-900">Neighborhood Watch Groups</h3>
-                        <button class="text-blue-600 hover:text-blue-800 text-sm font-medium">Create New Group</button>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        ${watchGroups.map(group => `
-                            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                                <div class="flex justify-between items-start">
-                                    <div>
-                                        <h4 class="font-medium text-gray-900">${group.name}</h4>
-                                        <div class="flex items-center mt-2">
-                                            <span class="text-xs ${group.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'} px-2 py-1 rounded-full">${group.active ? 'Active' : 'Inactive'}</span>
-                                            <span class="text-xs text-gray-500 ml-2">${group.members} members</span>
-                                        </div>
-                                    </div>
-                                    <button class="text-blue-600 hover:text-blue-800">
-                                        <i data-lucide="chevron-right" class="h-5 w-5"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="side-by-side gap-8">
                     <div class="bg-white rounded-xl shadow-md p-6">
                         <h3 class="text-xl font-semibold text-gray-900 mb-6">Safety Resources</h3>
                         <div class="space-y-4">
                             <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                                 <div class="flex items-start space-x-3">
                                     <div class="bg-blue-100 p-2 rounded-lg">
-                                        <i data-lucide="file-text" class="h-5 w-5 text-blue-600"></i>
+                                        <i class="fas fa-file-alt text-blue-600"></i>
                                     </div>
                                     <div>
                                         <h4 class="font-medium text-gray-900">Neighborhood Watch Guidelines</h4>
@@ -2508,7 +2751,7 @@
                             <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                                 <div class="flex items-start space-x-3">
                                     <div class="bg-green-100 p-2 rounded-lg">
-                                        <i data-lucide="shield" class="h-5 w-5 text-green-600"></i>
+                                        <i class="fas fa-shield-alt text-green-600"></i>
                                     </div>
                                     <div>
                                         <h4 class="font-medium text-gray-900">Safety Training Materials</h4>
@@ -2520,7 +2763,7 @@
                             <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                                 <div class="flex items-start space-x-3">
                                     <div class="bg-purple-100 p-2 rounded-lg">
-                                        <i data-lucide="megaphone" class="h-5 w-5 text-purple-600"></i>
+                                        <i class="fas fa-bullhorn text-purple-600"></i>
                                     </div>
                                     <div>
                                         <h4 class="font-medium text-gray-900">Community Alert Templates</h4>
@@ -2575,7 +2818,7 @@
 
         function renderMap() {
             const main = document.createElement('main');
-            main.className = 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8';
+            main.className = 'container';
             main.innerHTML = `
                 <div class="mb-8">
                     <h2 class="text-2xl font-bold text-gray-900">Live Monitoring Map</h2>
@@ -2609,72 +2852,74 @@
                             </button>
                         </div>
                         <button id="refreshMapBtn" class="refresh-button">
-                            <i data-lucide="refresh-cw" class="h-4 w-4"></i>
+                            <i class="fas fa-sync-alt mr-1"></i>
                             Refresh Map
                         </button>
                     </div>
 
                     <!-- Map -->
-                    <div id="liveMap" class="rounded-lg shadow-md mb-6" style="height: 500px;"></div>
+                    <div id="liveMap" class="rounded-lg shadow-md mb-6" style="height: 400px;"></div>
 
-                    <!-- Stats -->
-                    <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-6 text-center">
-                        <div class="bg-blue-50 p-4 rounded-lg shadow">
-                            <p class="text-2xl font-bold text-blue-700">25</p>
-                            <p class="text-sm text-gray-600">Active Sensors</p>
+                    <!-- Marker Stats Side by Side -->
+                    <div class="marker-stats">
+                        <div class="marker-stat">
+                            <div class="marker-stat-number">25</div>
+                            <div class="marker-stat-label">Active Sensors</div>
                         </div>
-                        <div class="bg-red-50 p-4 rounded-lg shadow">
-                            <p class="text-2xl font-bold text-red-700">${recentIncidents.filter(i => i.status === 'investigating').length}</p>
-                            <p class="text-sm text-gray-600">Active Incidents</p>
+                        <div class="marker-stat">
+                            <div class="marker-stat-number">${recentIncidents.filter(i => i.status === 'investigating').length}</div>
+                            <div class="marker-stat-label">Active Incidents</div>
                         </div>
-                        <div class="bg-green-50 p-4 rounded-lg shadow">
-                            <p class="text-2xl font-bold text-green-700">10</p>
-                            <p class="text-sm text-gray-600">Patrol Units</p>
+                        <div class="marker-stat">
+                            <div class="marker-stat-number">10</div>
+                            <div class="marker-stat-label">Patrol Units</div>
                         </div>
-                        <div class="bg-purple-50 p-4 rounded-lg shadow">
-                            <p class="text-2xl font-bold text-purple-700">12</p>
-                            <p class="text-sm text-gray-600">Watch Groups</p>
+                        <div class="marker-stat">
+                            <div class="marker-stat-number">12</div>
+                            <div class="marker-stat-label">Watch Groups</div>
                         </div>
-                        <div class="bg-yellow-50 p-4 rounded-lg shadow">
-                            <p class="text-2xl font-bold text-yellow-700">6</p>
-                            <p class="text-sm text-gray-600">Video Cameras</p>
+                        <div class="marker-stat">
+                            <div class="marker-stat-number">6</div>
+                            <div class="marker-stat-label">Video Cameras</div>
                         </div>
                     </div>
 
-                    <!-- Chart + Table -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <!-- Chart + Table Side by Side -->
+                    <div class="side-by-side gap-6 mb-8">
                         <!-- Bar Chart -->
                         <div class="bg-white rounded-lg shadow p-4">
                             <h4 class="text-lg font-semibold mb-4 text-gray-900">Analytics Overview</h4>
-                            <canvas id="mapStatsChart" height="120"></canvas>
+                            <canvas id="mapStatsChart" class="small-chart"></canvas>
                         </div>
 
-                        <!-- Table -->
+                        <!-- Table with shorter tag details -->
                         <div class="bg-white rounded-lg shadow p-4 overflow-x-auto">
                             <h4 class="text-lg font-semibold mb-4 text-gray-900">Tag Details</h4>
-                            <table class="min-w-full border border-gray-200 text-sm">
-                                <thead class="bg-gray-100">
-                                    <tr>
-                                        <th class="px-3 py-2 border">Type</th>
-                                        <th class="px-3 py-2 border">Latitude</th>
-                                        <th class="px-3 py-2 border">Longitude</th>
-                                        <th class="px-3 py-2 border">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tagTableBody"></tbody>
-                            </table>
+                            <div class="tag-details-container">
+                                <table class="min-w-full border border-gray-200 text-sm">
+                                    <thead class="bg-gray-100">
+                                        <tr>
+                                            <th class="px-3 py-2 border">Type</th>
+                                            <th class="px-3 py-2 border">Latitude</th>
+                                            <th class="px-3 py-2 border">Longitude</th>
+                                            <th class="px-3 py-2 border">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tagTableBody"></tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Additional Analytics Charts -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <!-- Additional Analytics Charts Side by Side -->
+                    <div class="side-by-side gap-6 mb-8">
                         <div class="bg-white rounded-lg shadow p-4">
                             <h4 class="text-lg font-semibold mb-4 text-gray-900">Incident Trends</h4>
-                            <canvas id="incidentTrendsChart" height="120"></canvas>
+                            <canvas id="incidentTrendsChart" class="small-chart"></canvas>
                         </div>
                         <div class="bg-white rounded-lg shadow p-4">
                             <h4 class="text-lg font-semibold mb-4 text-gray-900">Response Times</h4>
-                            <canvas id="responseTimeChart" height="120"></canvas>
+                            <canvas id="responseTimeChart" class="small-chart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -2839,6 +3084,7 @@
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: { y: { beginAtZero: true, ticks: { stepSize: 5 } } }
                 }
@@ -2861,6 +3107,7 @@
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: { y: { beginAtZero: true } }
                 }
@@ -2880,6 +3127,7 @@
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: { y: { beginAtZero: true, title: { display: true, text: "Minutes" } } }
                 }
@@ -2894,7 +3142,7 @@
         
         function renderVideoSurveillance() {
             const main = document.createElement('main');
-            main.className = 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8';
+            main.className = 'container';
             main.innerHTML = `
                 <div class="mb-8">
                     <h2 class="text-2xl font-bold text-gray-900">Video Surveillance</h2>
@@ -2925,7 +3173,7 @@
                             <div class="video-card">
                                 <div class="video-placeholder">
                                     <div style="text-align: center;">
-                                        <i data-lucide="video" class="h-12 w-12 text-gray-400 mb-2"></i>
+                                        <i class="fas fa-video text-3xl text-gray-400 mb-2"></i>
                                         <p>${camera.name}</p>
                                         <div class="video-status ${camera.status === 'live' ? 'status-live' : camera.status === 'recording' ? 'status-recording' : 'status-offline'}">
                                             ${camera.status.toUpperCase()}
@@ -2938,11 +3186,11 @@
                                     <p class="text-xs text-gray-500 mt-2">Last activity: ${camera.lastActivity}</p>
                                     <div class="video-controls">
                                         <button class="btn-play">
-                                            <i data-lucide="play" class="h-4 w-4"></i>
+                                            <i class="fas fa-play mr-1"></i>
                                             View Live
                                         </button>
                                         <button class="btn-fullscreen">
-                                            <i data-lucide="maximize" class="h-4 w-4"></i>
+                                            <i class="fas fa-expand mr-1"></i>
                                             Fullscreen
                                         </button>
                                     </div>
@@ -2952,7 +3200,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="side-by-side gap-8">
                     <div class="bg-white rounded-xl shadow-md p-6">
                         <h3 class="text-xl font-semibold text-gray-900 mb-4">Recent Recordings</h3>
                         <div class="space-y-4">
@@ -2964,7 +3212,7 @@
                                         <p class="text-sm text-gray-600">Duration: 12 minutes</p>
                                     </div>
                                     <button class="text-blue-600 hover:text-blue-800">
-                                        <i data-lucide="play" class="h-5 w-5"></i>
+                                        <i class="fas fa-play"></i>
                                     </button>
                                 </div>
                             </div>
@@ -2977,7 +3225,7 @@
                                         <p class="text-sm text-gray-600">Duration: 45 minutes</p>
                                     </div>
                                     <button class="text-blue-600 hover:text-blue-800">
-                                        <i data-lucide="play" class="h-5 w-5"></i>
+                                        <i class="fas fa-play"></i>
                                     </button>
                                 </div>
                             </div>
@@ -2990,7 +3238,7 @@
                                         <p class="text-sm text-gray-600">Duration: 8 minutes</p>
                                     </div>
                                     <button class="text-blue-600 hover:text-blue-800">
-                                        <i data-lucide="play" class="h-5 w-5"></i>
+                                        <i class="fas fa-play"></i>
                                     </button>
                                 </div>
                             </div>
@@ -3026,7 +3274,7 @@
 
                             <div class="pt-4 border-t border-gray-200">
                                 <button class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center">
-                                    <i data-lucide="settings" class="h-4 w-4 mr-2"></i>
+                                    <i class="fas fa-cog mr-2"></i>
                                     Camera Settings
                                 </button>
                             </div>
@@ -3039,7 +3287,7 @@
 
         function renderAI() {
             const main = document.createElement('main');
-            main.className = 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8';
+            main.className = 'container';
             main.innerHTML = `
                 <div class="mb-8">
                     <h2 class="text-2xl font-bold text-gray-900">AI Risk Prediction</h2>
@@ -3076,81 +3324,81 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <div class="ai-dashboard gap-8 mb-8">
                     <div class="prediction-chart-container">
                         <h3 class="text-xl font-semibold text-gray-900 mb-4">Risk Probability by Zone</h3>
-                        <canvas id="riskProbabilityChart" height="250"></canvas>
+                        <canvas id="riskProbabilityChart" class="small-chart"></canvas>
                     </div>
 
                     <div class="prediction-chart-container">
                         <h3 class="text-xl font-semibold text-gray-900 mb-4">Risk Factors Analysis</h3>
-                        <canvas id="riskFactorsChart" height="250"></canvas>
+                        <canvas id="riskFactorsChart" class="small-chart"></canvas>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-md p-6">
-                    <h3 class="text-xl font-semibold text-gray-900 mb-4">Recommended Actions</h3>
-                    <div class="space-y-4">
-                        ${aiPredictions.filter(p => p.risk === 'High').map(prediction => `
-                            <div class="border border-red-200 bg-red-50 rounded-lg p-4">
-                                <div class="flex justify-between items-start">
-                                    <div>
-                                        <h4 class="font-medium text-red-800">High Priority: ${prediction.zone}</h4>
-                                        <p class="text-sm text-red-600 mt-1">Key factors: ${prediction.factors.join(', ')}</p>
-                                        <ul class="text-sm text-red-700 mt-2 list-disc list-inside">
-                                            <li>Increase patrol frequency in this area</li>
-                                            <li>Activate additional surveillance cameras</li>
-                                            <li>Notify community watch groups</li>
-                                            <li>Conduct infrastructure security assessment</li>
-                                        </ul>
-                                    </div>
-                                    <button class="text-red-600 hover:text-red-800">
-                                        <i data-lucide="alert-triangle" class="h-5 w-5"></i>
-                                    </button>
+                <div class="side-by-side gap-8">
+                    <div class="ai-minimal-card">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-4">AI Model Performance</h3>
+                        <div class="performance-bars">
+                            <div class="performance-bar">
+                                <div class="performance-label">Accuracy</div>
+                                <div class="performance-bar-container">
+                                    <div class="performance-bar-fill accuracy" style="width: 94%"></div>
                                 </div>
+                                <div class="performance-value">94%</div>
                             </div>
-                        `).join('')}
-                        
-                        ${aiPredictions.filter(p => p.risk === 'Medium').map(prediction => `
-                            <div class="border border-yellow-200 bg-yellow-50 rounded-lg p-4">
-                                <div class="flex justify-between items-start">
-                                    <div>
-                                        <h4 class="font-medium text-yellow-800">Medium Priority: ${prediction.zone}</h4>
-                                        <p class="text-sm text-yellow-600 mt-1">Key factors: ${prediction.factors.join(', ')}</p>
-                                        <ul class="text-sm text-yellow-700 mt-2 list-disc list-inside">
-                                            <li>Maintain current patrol schedule</li>
-                                            <li>Monitor sensor alerts closely</li>
-                                            <li>Coordinate with community watch</li>
-                                        </ul>
-                                    </div>
-                                    <button class="text-yellow-600 hover:text-yellow-800">
-                                        <i data-lucide="eye" class="h-5 w-5"></i>
-                                    </button>
+                            <div class="performance-bar">
+                                <div class="performance-label">Precision</div>
+                                <div class="performance-bar-container">
+                                    <div class="performance-bar-fill precision" style="width: 87%"></div>
                                 </div>
+                                <div class="performance-value">87%</div>
                             </div>
-                        `).join('')}
+                            <div class="performance-bar">
+                                <div class="performance-label">Recall</div>
+                                <div class="performance-bar-container">
+                                    <div class="performance-bar-fill recall" style="width: 91%"></div>
+                                </div>
+                                <div class="performance-value">91%</div>
+                            </div>
+                        </div>
+                        <div class="mt-4 text-sm text-gray-600">
+                            <p>Model last trained: January 18, 2025</p>
+                            <p>Training data: 12,458 incidents from 2023-2024</p>
+                        </div>
                     </div>
-                </div>
 
-                <div class="bg-white rounded-xl shadow-md p-6 mt-8">
-                    <h3 class="text-xl font-semibold text-gray-900 mb-4">AI Model Performance</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-                        <div class="bg-blue-50 p-4 rounded-lg">
-                            <p class="text-2xl font-bold text-blue-700">94%</p>
-                            <p class="text-sm text-gray-600">Accuracy</p>
+                    <div class="ai-minimal-card">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-4">Recommended Actions</h3>
+                        <div class="space-y-4">
+                            ${aiPredictions.filter(p => p.risk === 'High').map(prediction => `
+                                <div class="border border-red-200 bg-red-50 rounded-lg p-4">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <h4 class="font-medium text-red-800">High Priority: ${prediction.zone}</h4>
+                                            <p class="text-sm text-red-600 mt-1">Key factors: ${prediction.factors.join(', ')}</p>
+                                        </div>
+                                        <button class="text-red-600 hover:text-red-800">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                            
+                            ${aiPredictions.filter(p => p.risk === 'Medium').slice(0, 1).map(prediction => `
+                                <div class="border border-yellow-200 bg-yellow-50 rounded-lg p-4">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <h4 class="font-medium text-yellow-800">Medium Priority: ${prediction.zone}</h4>
+                                            <p class="text-sm text-yellow-600 mt-1">Key factors: ${prediction.factors.join(', ')}</p>
+                                        </div>
+                                        <button class="text-yellow-600 hover:text-yellow-800">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
                         </div>
-                        <div class="bg-green-50 p-4 rounded-lg">
-                            <p class="text-2xl font-bold text-green-700">87%</p>
-                            <p class="text-sm text-gray-600">Precision</p>
-                        </div>
-                        <div class="bg-purple-50 p-4 rounded-lg">
-                            <p class="text-2xl font-bold text-purple-700">91%</p>
-                            <p class="text-sm text-gray-600">Recall</p>
-                        </div>
-                    </div>
-                    <div class="mt-6">
-                        <p class="text-gray-600">Model last trained: January 18, 2025</p>
-                        <p class="text-gray-600">Training data: 12,458 incidents from 2023-2024</p>
                     </div>
                 </div>
             `;
@@ -3184,6 +3432,7 @@
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     plugins: {
                         legend: {
                             position: 'bottom'
@@ -3213,6 +3462,7 @@
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     plugins: {
                         legend: {
                             display: false
@@ -3264,16 +3514,14 @@
             
             app.appendChild(mainContent);
             app.appendChild(renderFooter());
-            
-            // Initialize Lucide icons
-            if (window.lucide) {
-                lucide.createIcons();
-            }
         }
 
         // Initialize the app
         document.addEventListener('DOMContentLoaded', () => {
             render();
+            
+            // Close sidebar when clicking on overlay
+            document.querySelector('.sidebar-overlay').addEventListener('click', closeSidebar);
         });
         
     </script>
