@@ -15,12 +15,12 @@
 
 
       const { data, error } = await supabase
-        .from("TablePractice")
+        .from("Database")
         .insert([{ name: name, age: age, email: email }]);
 
     document.getElementById("fetch-btn").addEventListener("click", async () => {
       const { data, error } = await supabase
-        .from("TablePractice")
+        .from("Database")
         .select("*");
 
       if (error) {
