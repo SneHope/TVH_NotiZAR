@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NotiZAR - Community Protection</title>
     <script src="https://unpkg.com/lucide@0.263.1/dist/umd/lucide.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <link rel="stylesheet" href="../style.css">
@@ -686,7 +687,32 @@
             </div>
 
             <!-- Leaflet Map -->
-            <div id="liveMap" class="rounded-lg shadow-md" style="height: 500px;"></div>
+            <div id="liveMap" class="rounded-lg shadow-md mb-6" style="height: 500px;"></div>
+
+            <!-- Stats + Bar Chart -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6 text-center">
+                <div class="bg-blue-50 p-4 rounded-lg shadow">
+                    <p class="text-2xl font-bold text-blue-700">25</p>
+                    <p class="text-sm text-gray-600">Active Sensors</p>
+                </div>
+                <div class="bg-red-50 p-4 rounded-lg shadow">
+                    <p class="text-2xl font-bold text-red-700">7</p>
+                    <p class="text-sm text-gray-600">Active Incidents</p>
+                </div>
+                <div class="bg-green-50 p-4 rounded-lg shadow">
+                    <p class="text-2xl font-bold text-green-700">10</p>
+                    <p class="text-sm text-gray-600">Patrol Units</p>
+                </div>
+                <div class="bg-purple-50 p-4 rounded-lg shadow">
+                    <p class="text-2xl font-bold text-purple-700">12</p>
+                    <p class="text-sm text-gray-600">Watch Groups</p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-4">
+                <h4 class="text-lg font-semibold mb-4 text-gray-900">Analytics Overview</h4>
+                <canvas id="mapStatsChart" height="80"></canvas>
+            </div>
         </div>
     `;
 
@@ -699,20 +725,47 @@
         }).addTo(map);
 
         // Colored marker icons
-        const redIcon = L.divIcon({ className: "custom-marker", html: '<div style="background:#dc2626;width:16px;height:16px;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>' });
-        const blueIcon = L.divIcon({ className: "custom-marker", html: '<div style="background:#2563eb;width:16px;height:16px;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>' });
-        const greenIcon = L.divIcon({ className: "custom-marker", html: '<div style="background:#16a34a;width:16px;height:16px;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>' });
-        const purpleIcon = L.divIcon({ className: "custom-marker", html: '<div style="background:#7e22ce;width:16px;height:16px;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>' });
+        const redIcon = L.divIcon({ className: "custom-marker", html: '<div style="background:#dc2626;width:14px;height:14px;border-radius:50%;border:2px solid white;"></div>' });
+        const blueIcon = L.divIcon({ className: "custom-marker", html: '<div style="background:#2563eb;width:14px;height:14px;border-radius:50%;border:2px solid white;"></div>' });
+        const greenIcon = L.divIcon({ className: "custom-marker", html: '<div style="background:#16a34a;width:14px;height:14px;border-radius:50%;border:2px solid white;"></div>' });
+        const purpleIcon = L.divIcon({ className: "custom-marker", html: '<div style="background:#7e22ce;width:14px;height:14px;border-radius:50%;border:2px solid white;"></div>' });
 
-        // Demo markers
-        L.marker([-25.7479, 28.2293], { icon: redIcon }).addTo(map)
-            .bindPopup("<b>Incident</b><br/>Sample marker.");
-        L.marker([-25.75, 28.22], { icon: blueIcon }).addTo(map)
-            .bindPopup("<b>Sensor</b><br/>Sample marker.");
-        L.marker([-25.74, 28.24], { icon: greenIcon }).addTo(map)
-            .bindPopup("<b>Patrol</b><br/>Sample marker.");
-        L.marker([-25.76, 28.23], { icon: purpleIcon }).addTo(map)
-            .bindPopup("<b>Watch Group</b><br/>Sample marker.");
+        // Demo random markers
+        function addRandomMarkers(icon, count, label) {
+            for (let i = 0; i < count; i++) {
+                const lat = -25.74 + Math.random() * 0.05;
+                const lng = 28.21 + Math.random() * 0.05;
+                L.marker([lat, lng], { icon }).addTo(map).bindPopup(`${label} #${i + 1}`);
+            }
+        }
+
+        addRandomMarkers(blueIcon, 25, "Sensor");
+        addRandomMarkers(redIcon, 7, "Incident");
+        addRandomMarkers(greenIcon, 10, "Patrol");
+        addRandomMarkers(purpleIcon, 12, "Watch Group");
+
+        // Chart.js analytics (Bar Chart)
+        const ctx = document.getElementById("mapStatsChart").getContext("2d");
+        new Chart(ctx, {
+            type: "bar",
+            data: {
+                labels: ["Sensors", "Incidents", "Patrols", "Watch Groups"],
+                datasets: [{
+                    label: "Count",
+                    data: [25, 7, 10, 12],
+                    backgroundColor: ["#2563eb", "#dc2626", "#16a34a", "#7e22ce"]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 5 } }
+                }
+            }
+        });
     }, 50);
 
     return main;
