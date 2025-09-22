@@ -665,29 +665,58 @@
         <div class="bg-white rounded-xl shadow-md p-6 mb-8">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <h3 class="text-xl font-semibold text-gray-900">Tshwane Community Map</h3>
+                <div class="flex flex-wrap gap-2">
+                    <button class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium flex items-center">
+                        <div class="w-3 h-3 bg-blue-600 rounded-full mr-2"></div>
+                        Active Sensors
+                    </button>
+                    <button class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium flex items-center">
+                        <div class="w-3 h-3 bg-red-600 rounded-full mr-2"></div>
+                        Active Incidents
+                    </button>
+                    <button class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium flex items-center">
+                        <div class="w-3 h-3 bg-green-600 rounded-full mr-2"></div>
+                        Patrols
+                    </button>
+                    <button class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium flex items-center">
+                        <div class="w-3 h-3 bg-purple-600 rounded-full mr-2"></div>
+                        Watch Groups
+                    </button>
+                </div>
             </div>
 
-            <!-- Actual map container -->
+            <!-- Leaflet Map -->
             <div id="liveMap" class="rounded-lg shadow-md" style="height: 500px;"></div>
         </div>
     `;
 
-    // Wait for DOM insert, then render map
+    // Initialize map after DOM render
     setTimeout(() => {
-        const map = L.map('liveMap').setView([-25.7479, 28.2293], 12); // Pretoria center
+        const map = L.map('liveMap').setView([-25.7479, 28.2293], 12); // Pretoria
 
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
             attribution: "&copy; OpenStreetMap contributors"
         }).addTo(map);
 
-        // Placeholder marker (just to confirm map loads)
-        L.marker([-25.7479, 28.2293]).addTo(map)
-            .bindPopup("<b>Pretoria</b><br/>Community center point.");
+        // Colored marker icons
+        const redIcon = L.divIcon({ className: "custom-marker", html: '<div style="background:#dc2626;width:16px;height:16px;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>' });
+        const blueIcon = L.divIcon({ className: "custom-marker", html: '<div style="background:#2563eb;width:16px;height:16px;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>' });
+        const greenIcon = L.divIcon({ className: "custom-marker", html: '<div style="background:#16a34a;width:16px;height:16px;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>' });
+        const purpleIcon = L.divIcon({ className: "custom-marker", html: '<div style="background:#7e22ce;width:16px;height:16px;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>' });
+
+        // Demo markers
+        L.marker([-25.7479, 28.2293], { icon: redIcon }).addTo(map)
+            .bindPopup("<b>Incident</b><br/>Sample marker.");
+        L.marker([-25.75, 28.22], { icon: blueIcon }).addTo(map)
+            .bindPopup("<b>Sensor</b><br/>Sample marker.");
+        L.marker([-25.74, 28.24], { icon: greenIcon }).addTo(map)
+            .bindPopup("<b>Patrol</b><br/>Sample marker.");
+        L.marker([-25.76, 28.23], { icon: purpleIcon }).addTo(map)
+            .bindPopup("<b>Watch Group</b><br/>Sample marker.");
     }, 50);
 
     return main;
 }
-
 
         function render() {
             const app = document.getElementById('app');
