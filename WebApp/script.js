@@ -1053,3 +1053,42 @@
         document.addEventListener('DOMContentLoaded', () => {
             render();
         });
+        function renderReport() {
+    const main = document.createElement('main');
+    main.className = 'max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8';
+    main.innerHTML = `
+        <!-- ... other content ... -->
+        <form id="reportForm" class="space-y-4">
+            <!-- ... form fields ... -->
+        </form>
+        <!-- ... -->
+    `;
+
+    // After adding the form, attach the event listener
+    setTimeout(() => {
+        const form = document.getElementById('reportForm');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            // Collect form data
+            const formData = new FormData(form);
+            const reportData = {
+                reportType: formData.get('reportType'),
+                location: formData.get('location'),
+                report: formData.get('description'),
+                name: formData.get('name'),
+                email: formData.get('email'),
+                anon: formData.get('anonymous') ? 'yes' : 'no'
+            };
+
+            const result = await EndUser.submitReport(reportData);
+            if (result.success) {
+                alert('Report submitted successfully!');
+                form.reset();
+            } else {
+                alert('Error: ' + result.error);
+            }
+        });
+    }, 0);
+
+    return main;
+}
