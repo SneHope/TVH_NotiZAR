@@ -384,3 +384,200 @@ function showNotification(message, type) {
 if (typeof lucide !== 'undefined') {
     lucide.createIcons();
 }
+
+// Add this to your existing JavaScript file
+
+// Enhanced interactivity for all sections
+function initEnhancedInteractivity() {
+    // Add click handlers for steps
+    const steps = document.querySelectorAll('.step');
+    steps.forEach((step, index) => {
+        step.addEventListener('click', () => {
+            // Add visual feedback when step is clicked
+            step.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                step.style.transform = '';
+            }, 150);
+            
+            // Show a tooltip or additional info (you can customize this)
+            showStepInfo(index);
+        });
+    });
+    
+    // Add typing effect for hero title
+    initTypingEffect();
+    
+    // Add scroll animations
+    initScrollAnimations();
+    
+    // Add form field animations
+    initFormAnimations();
+}
+
+// Show step information when clicked
+function showStepInfo(stepIndex) {
+    const stepTitles = [
+        "Create your secure account and join the community protection network",
+        "Get instant notifications about incidents and emergencies in your area",
+        "Monitor real-time activity and track incidents on interactive maps",
+        "Participate in community watch programs and help keep everyone safe"
+    ];
+    
+    showNotification(stepTitles[stepIndex], 'info');
+}
+
+// Typing effect for hero title
+function initTypingEffect() {
+    const heroTitle = document.querySelector('.hero-title');
+    if (!heroTitle) return;
+    
+    const originalText = heroTitle.textContent;
+    heroTitle.textContent = '';
+    let i = 0;
+    
+    function typeWriter() {
+        if (i < originalText.length) {
+            heroTitle.textContent += originalText.charAt(i);
+            i++;
+            setTimeout(typeWriter, 50);
+        }
+    }
+    
+    // Start typing effect when hero section is in view
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                typeWriter();
+                observer.unobserve(entry.target);
+            }
+        });
+    });
+    
+    observer.observe(heroTitle);
+}
+
+// Scroll animations
+function initScrollAnimations() {
+    const animatedElements = document.querySelectorAll('.feature-card-icon, .step, .testimonial-card');
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, { threshold: 0.1 });
+    
+    animatedElements.forEach(el => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(30px)';
+        el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        observer.observe(el);
+    });
+}
+
+// Form field animations
+function initFormAnimations() {
+    const formInputs = document.querySelectorAll('.form-input');
+    
+    formInputs.forEach(input => {
+        input.addEventListener('focus', () => {
+            input.parentElement.classList.add('focused');
+        });
+        
+        input.addEventListener('blur', () => {
+            if (!input.value) {
+                input.parentElement.classList.remove('focused');
+            }
+        });
+    });
+}
+
+// Enhanced login page animations
+function initLoginAnimations() {
+    const loginCard = document.querySelector('.login-card');
+    if (loginCard) {
+        loginCard.style.opacity = '0';
+        loginCard.style.transform = 'translateY(30px)';
+        
+        setTimeout(() => {
+            loginCard.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            loginCard.style.opacity = '1';
+            loginCard.style.transform = 'translateY(0)';
+        }, 100);
+    }
+}
+
+// Update your DOMContentLoaded event listener to include the new functions
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded - initializing NotiZAR');
+    
+    // Initialize all functionality
+    initLoginFunctionality();
+    initEmergencyReporting();
+    initSidebar();
+    initHeaderButtons();
+    initNavigation();
+    initSmoothScrolling();
+    initEnhancedInteractivity(); // Add this line
+    
+    // Initialize login animations when login page is shown
+    const loginButtons = document.querySelectorAll('#header-login-btn, .login-sidebar-btn, #get-started-btn, #cta-login-btn, #cta-signup-btn');
+    loginButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            setTimeout(initLoginAnimations, 100);
+        });
+    });
+});
+
+// Add this CSS for form animations (add to your style.css)
+const formAnimationCSS = `
+.form-group {
+    position: relative;
+    margin-bottom: var(--space-lg);
+    text-align: left;
+}
+
+.form-group.focused .form-label {
+    transform: translateY(-25px) scale(0.85);
+    color: var(--primary);
+}
+
+.form-label {
+    display: block;
+    margin-bottom: var(--space-sm);
+    font-weight: 500;
+    color: var(--dark);
+    transition: all 0.3s ease;
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    background: white;
+    padding: 0 0.25rem;
+    pointer-events: none;
+}
+
+.form-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--gray-light);
+    border-radius: var(--radius);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: #f8fafc;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    background: white;
+    transform: translateY(-2px);
+}
+`;
+
+// Inject the CSS
+const style = document.createElement('style');
+style.textContent = formAnimationCSS;
+document.head.appendChild(style);
