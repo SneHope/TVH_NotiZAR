@@ -1772,3 +1772,277 @@ body.login-active {
         grid-template-columns: 1fr;
     }
 }
+
+/* Fix for GitHub Pages hosting - ensure proper image and text sizing */
+.about-hero-section,
+.detailed-section,
+.team-section,
+.values-section {
+    position: relative;
+    z-index: 1;
+}
+
+/* Ensure images scale properly */
+.detailed-image img,
+.team-image img,
+.about-image img {
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+/* Fix text positioning and sizing */
+.detailed-text h2 {
+    font-size: 2.2rem;
+    margin-bottom: 1.5rem;
+    color: var(--dark-color);
+    line-height: 1.2;
+}
+
+.detailed-text h3 {
+    font-size: 1.4rem;
+    margin: 2rem 0 1rem;
+    color: var(--primary-color);
+}
+
+.detailed-text p {
+    font-size: 1.05rem;
+    line-height: 1.7;
+    margin-bottom: 1.5rem;
+    color: var(--text-color);
+}
+
+/* Team section fixes */
+.team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+.team-card {
+    background: white;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.team-image {
+    height: 200px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.team-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.team-info {
+    padding: 1.5rem;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.team-info h3 {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+}
+
+.team-role {
+    color: var(--primary-color);
+    font-weight: 600;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+.team-bio {
+    color: var(--text-color);
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+    flex-grow: 1;
+    font-size: 0.9rem;
+}
+
+/* Mission stats fixes */
+.mission-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin: 2.5rem 0;
+}
+
+.mission-stat {
+    text-align: center;
+    padding: 1.5rem 1rem;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    border: 1px solid #f0f0f0;
+}
+
+.mission-stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+.mission-stat-label {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    font-weight: 500;
+}
+
+/* Values section fixes */
+.values-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+.value-card {
+    text-align: center;
+    padding: 2rem 1.5rem;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+    border: 1px solid #f8f9fa;
+}
+
+.value-icon {
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    color: white;
+    font-size: 1.8rem;
+}
+
+.value-card h3 {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+    color: var(--dark-color);
+}
+
+.value-card p {
+    color: var(--text-color);
+    line-height: 1.6;
+    font-size: 0.95rem;
+}
+
+/* Timeline fixes */
+.timeline {
+    list-style: none;
+    padding: 0;
+    margin: 2rem 0;
+}
+
+.timeline li {
+    padding: 0.8rem 0;
+    border-bottom: 1px solid #eee;
+    position: relative;
+    padding-left: 2rem;
+    font-size: 0.95rem;
+}
+
+.timeline li:before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: var(--success-color);
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.timeline li:last-child {
+    border-bottom: none;
+}
+
+.timeline strong {
+    color: var(--primary-color);
+}
+
+/* Container fixes for consistent spacing */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Responsive design improvements */
+@media (max-width: 768px) {
+    .about-hero-content h1 {
+        font-size: 2.2rem;
+    }
+    
+    .about-hero-content p {
+        font-size: 1.1rem;
+    }
+    
+    .detailed-content {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+    
+    .detailed-text h2 {
+        font-size: 1.8rem;
+    }
+    
+    .mission-stats {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .mission-stat {
+        padding: 1.2rem 1rem;
+    }
+    
+    .mission-stat-number {
+        font-size: 1.8rem;
+    }
+    
+    .team-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .values-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .value-card {
+        padding: 1.5rem 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 0 15px;
+    }
+    
+    .about-hero-content h1 {
+        font-size: 1.8rem;
+    }
+    
+    .detailed-text h2 {
+        font-size: 1.6rem;
+    }
+    
+    .team-image {
+        height: 180px;
+    }
+}
