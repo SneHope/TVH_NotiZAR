@@ -1,176 +1,457 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NotiZAR - Login</title>
+    <title>NotiZAR - Community Protection System</title>
     <script src="https://unpkg.com/lucide@0.263.1/dist/umd/lucide.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <style>
-        /* Common styles */
-        :root {
-            --primary: #2563eb;
-            --primary-dark: #1e40af;
-            --danger: #dc2626;
-            --success: #16a34a;
-            --warning: #d97706;
-            --info: #3b82f6;
-            --dark: #111827;
-            --light: #f9fafb;
-            --white: #ffffff;
-            --gray: #6b7280;
-            --gray-light: #e5e7eb;
-            --space-sm: 0.5rem;
-            --space-md: 1rem;
-            --space-lg: 1.5rem;
-            --radius: 0.5rem;
-            --radius-lg: 0.75rem;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-            --camera-yellow: #fbbf24;
-            --camera-orange: #f59e0b;
-            --ai-purple: #8b5cf6;
-            --admin-indigo: #4f46e5;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--light);
-            color: var(--dark);
-            line-height: 1.5;
-        }
-
-        /* Login Page Styles */
-        .login-container {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            padding: var(--space-lg);
-        }
-
-        .login-card {
-            background: var(--white);
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-lg);
-            width: 100%;
-            max-width: 400px;
-            padding: var(--space-lg);
-            text-align: center;
-        }
-
-        .login-logo {
-            margin-bottom: var(--space-lg);
-        }
-
-        .login-logo-icon {
-            background: var(--primary);
-            width: 60px;
-            height: 60px;
-            border-radius: var(--radius);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto var(--space-md);
-        }
-
-        .login-logo-icon img {
-            width: 40px;
-            height: 40px;
-            border-radius: 4px;
-        }
-
-        .login-title {
-            font-size: 1.75rem;
-            font-weight: bold;
-            color: var(--dark);
-            margin-bottom: var(--space-sm);
-        }
-
-        .login-subtitle {
-            color: var(--gray);
-            margin-bottom: var(--space-lg);
-        }
-
-        .form-group {
-            margin-bottom: var(--space-lg);
-            text-align: left;
-        }
-
-        .form-label {
-            display: block;
-            margin-bottom: var(--space-sm);
-            font-weight: 500;
-            color: var(--dark);
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid var(--gray-light);
-            border-radius: var(--radius);
-            font-size: 1rem;
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-
-        .login-btn {
-            width: 100%;
-            padding: 0.75rem;
-            background: var(--primary);
-            color: var(--white);
-            border: none;
-            border-radius: var(--radius);
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        .login-btn:hover {
-            background: var(--primary-dark);
-        }
-
-        .login-error {
-            color: var(--danger);
-            margin-top: var(--space-sm);
-            display: none;
-        }
-
-        .demo-credentials {
-            margin-top: var(--space-lg);
-            padding: var(--space-md);
-            background: var(--light);
-            border-radius: var(--radius);
-            font-size: 0.875rem;
-        }
-
-        .demo-title {
-            font-weight: 600;
-            margin-bottom: var(--space-sm);
-        }
-
-        .demo-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: var(--space-sm);
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Emergency Report Button -->
+    <div id="emergency-report-btn" class="emergency-report-btn">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>Emergency Report</span>
+    </div>
+
+    <!-- Sidebar Menu -->
+    <div class="sidebar-overlay"></div>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <img src="Picture1.png" alt="NotiZAR Logo">
+                <h3>NotiZAR</h3>
+            </div>
+            <button class="sidebar-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <ul class="sidebar-menu">
+            <li><a href="#home"><i class="fas fa-home"></i> Home</a></li>
+            <li><a href="#features"><i class="fas fa-star"></i> Features</a></li>
+            <li><a href="#about"><i class="fas fa-info-circle"></i> About Us</a></li>
+            <li><a href="#how-it-works"><i class="fas fa-cogs"></i> How It Works</a></li>
+            <li><a href="#testimonials"><i class="fas fa-comments"></i> Testimonials</a></li>
+            <li><a href="#contact"><i class="fas fa-envelope"></i> Contact</a></li>
+            <li class="sidebar-divider"></li>
+            <li><a href="#" class="login-sidebar-btn"><i class="fas fa-sign-in-alt"></i> Login</a></li>
+            <li><a href="#" class="report-sidebar-btn"><i class="fas fa-exclamation-triangle"></i> Emergency Report</a></li>
+        </ul>
+    </aside>
+
+    <!-- Navigation Bar -->
+    <header class="navbar">
+        <div class="nav-container">
+            <div class="nav-left">
+                <button class="sidebar-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="nav-logo">
+                    <img src="Picture1.png" alt="NotiZAR Logo">
+                    <h1>NotiZAR</h1>
+                </div>
+            </div>
+            <nav class="nav-menu">
+                <a href="#home" class="nav-link active">Home</a>
+                <a href="#features" class="nav-link">Features</a>
+                <a href="#about" class="nav-link">About</a>
+                <a href="#how-it-works" class="nav-link">How It Works</a>
+                <a href="#testimonials" class="nav-link">Testimonials</a>
+            </nav>
+            <div class="nav-actions">
+                <button id="header-login-btn" class="nav-action-btn login-btn">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>Login</span>
+                </button>
+                <button id="header-report-btn" class="nav-action-btn report-btn">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Report</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main id="main-content">
+        <!-- Hero Section -->
+        <section id="home" class="hero-section">
+            <div class="hero-content">
+                <h1 class="hero-title">Protecting Communities Together</h1>
+                <p class="hero-subtitle">NotiZAR is a comprehensive community protection system that keeps you informed and connected during emergencies and critical situations in Tshwane.</p>
+                <div class="hero-buttons">
+                    <button id="get-started-btn" class="btn-primary">Get Started</button>
+                    <button id="learn-more-btn" class="btn-secondary">Learn More</button>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <div class="stat-number">15,000+</div>
+                        <div class="stat-label">Protected Homes</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">2,400+</div>
+                        <div class="stat-label">Incidents Prevented</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">8.2min</div>
+                        <div class="stat-label">Avg Response Time</div>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-image">
+                <img src="Image1.jpg" alt="Community Protection" class="hero-img">
+            </div>
+        </section>
+
+       <!-- Features Section -->
+        <section id="features" class="features-section">
+            <div class="container">
+                <h2 class="section-title">Our Protection Features</h2>
+                <p class="section-subtitle">Comprehensive security solutions for your community</p>
+                
+                <div class="features-grid">
+                    <!-- Feature 1 -->
+                    <div class="feature-card-icon">
+                        <div class="feature-icon-wrapper">
+                            <div class="feature-icon">
+                                <i class="fas fa-bell"></i>
+                            </div>
+                        </div>
+                        <div class="feature-content">
+                            <h3>Real-Time Alerts</h3>
+                            <p>Receive instant notifications about emergencies, security threats, and community updates in your area with our advanced monitoring system.</p>
+                            <ul class="feature-list">
+                                <li><i class="fas fa-check"></i> Instant push notifications</li>
+                                <li><i class="fas fa-check"></i> SMS and email alerts</li>
+                                <li><i class="fas fa-check"></i> Custom alert preferences</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Feature 2 -->
+                    <div class="feature-card-icon">
+                        <div class="feature-icon-wrapper">
+                            <div class="feature-icon">
+                                <i class="fas fa-map-marked-alt"></i>
+                            </div>
+                        </div>
+                        <div class="feature-content">
+                            <h3>Interactive Maps</h3>
+                            <p>Visualize incidents, safe zones, and resources on our interactive mapping system with live updates and historical data.</p>
+                            <ul class="feature-list">
+                                <li><i class="fas fa-check"></i> Live incident tracking</li>
+                                <li><i class="fas fa-check"></i> Safe route planning</li>
+                                <li><i class="fas fa-check"></i> Resource location mapping</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Feature 3 -->
+                    <div class="feature-card-icon">
+                        <div class="feature-icon-wrapper">
+                            <div class="feature-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                        </div>
+                        <div class="feature-content">
+                            <h3>Community Network</h3>
+                            <p>Connect with neighbors, local authorities, and emergency services for coordinated response and community support.</p>
+                            <ul class="feature-list">
+                                <li><i class="fas fa-check"></i> Neighborhood watch groups</li>
+                                <li><i class="fas fa-check"></i> Direct authority communication</li>
+                                <li><i class="fas fa-check"></i> Community alerts sharing</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Feature 4 -->
+                    <div class="feature-card-icon">
+                        <div class="feature-icon-wrapper">
+                            <div class="feature-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                        </div>
+                        <div class="feature-content">
+                            <h3>Analytics Dashboard</h3>
+                            <p>Access detailed reports and statistics about community safety trends and incident patterns in your area.</p>
+                            <ul class="feature-list">
+                                <li><i class="fas fa-check"></i> Real-time statistics</li>
+                                <li><i class="fas fa-check"></i> Historical data analysis</li>
+                                <li><i class="fas fa-check"></i> Custom report generation</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Feature 5 -->
+                    <div class="feature-card-icon">
+                        <div class="feature-icon-wrapper">
+                            <div class="feature-icon">
+                                <i class="fas fa-video"></i>
+                            </div>
+                        </div>
+                        <div class="feature-content">
+                            <h3>Video Surveillance</h3>
+                            <p>Monitor live and recorded footage from community surveillance cameras with AI-powered threat detection.</p>
+                            <ul class="feature-list">
+                                <li><i class="fas fa-check"></i> Live camera feeds</li>
+                                <li><i class="fas fa-check"></i> Motion detection alerts</li>
+                                <li><i class="fas fa-check"></i> Cloud recording storage</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Feature 6 -->
+                    <div class="feature-card-icon">
+                        <div class="feature-icon-wrapper">
+                            <div class="feature-icon">
+                                <i class="fas fa-brain"></i>
+                            </div>
+                        </div>
+                        <div class="feature-content">
+                            <h3>AI Predictions</h3>
+                            <p>Advanced artificial intelligence predicts high-risk areas and potential incidents before they happen.</p>
+                            <ul class="feature-list">
+                                <li><i class="fas fa-check"></i> Risk probability analysis</li>
+                                <li><i class="fas fa-check"></i> Pattern recognition</li>
+                                <li><i class="fas fa-check"></i> Preventive alerts</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section id="about" class="about-section">
+            <div class="container">
+                <h2 class="section-title">About NotiZAR</h2>
+                <p class="section-subtitle">Protecting Tshwane communities since 2023</p>
+                
+                <div class="about-content">
+                    <div class="about-text">
+                        <h3>Our Mission</h3>
+                        <p>NotiZAR was created to bridge the gap between communities and emergency response systems in Tshwane. We believe that timely information and coordinated action can save lives and protect property during critical situations.</p>
+                        
+                        <h3>Our Story</h3>
+                        <p>Founded in response to growing community safety concerns, NotiZAR has evolved into a comprehensive protection platform serving thousands of households across Pretoria and surrounding areas.</p>
+                        
+                        <h3>Our Team</h3>
+                        <p>We're a dedicated team of security experts, software developers, and community organizers committed to making Tshwane safer for everyone.</p>
+                        
+                        <div class="about-stats">
+                            <div class="about-stat">
+                                <div class="about-stat-number">3</div>
+                                <div class="about-stat-label">Years of Service</div>
+                            </div>
+                            <div class="about-stat">
+                                <div class="about-stat-number">50+</div>
+                                <div class="about-stat-label">Communities Served</div>
+                            </div>
+                            <div class="about-stat">
+                                <div class="about-stat-number">24/7</div>
+                                <div class="about-stat-label">Monitoring</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="about-image">
+                        <img src="Image1.jpg" alt="About NotiZAR">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works Section -->
+        <section id="how-it-works" class="how-it-works-section">
+            <div class="container">
+                <h2 class="section-title">How NotiZAR Works</h2>
+                <p class="section-subtitle">Simple steps to community protection</p>
+                
+                <div class="steps-container">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-icon">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <h3>Sign Up</h3>
+                        <p>Create your account and join your neighborhood protection network</p>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-icon">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <h3>Get Alerts</h3>
+                        <p>Receive real-time notifications about incidents in your area</p>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-icon">
+                            <i class="fas fa-map-marked-alt"></i>
+                        </div>
+                        <h3>Monitor</h3>
+                        <p>Track incidents and community activity on our interactive map</p>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <div class="step-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <h3>Stay Protected</h3>
+                        <p>Participate in community watch and help keep everyone safe</p>
+                    </div>
+                </div>
+                
+                <div class="demo-section">
+                    <div class="demo-content">
+                        <h3>See It In Action</h3>
+                        <p>Watch how NotiZAR helps communities respond to emergencies and prevent incidents through coordinated action and real-time information sharing.</p>
+                        <button class="btn-primary">View Demo</button>
+                    </div>
+                    <div class="demo-image">
+                        <img src="Image1.jpg" alt="NotiZAR in Action">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Testimonials Section -->
+        <section id="testimonials" class="testimonials-section">
+            <div class="container">
+                <h2 class="section-title">Community Stories</h2>
+                <p class="section-subtitle">Hear from people protected by NotiZAR</p>
+                
+                <div class="testimonials-grid">
+                    <div class="testimonial-card">
+                        <div class="testimonial-content">
+                            <p>"NotiZAR helped our neighborhood prevent a major cable theft incident. The quick alerts allowed us to respond before any damage was done."</p>
+                        </div>
+                        <div class="testimonial-author">
+                            <img src="Image1.jpg" alt="Sarah M.">
+                            <div class="author-info">
+                                <h4>Sarah M.</h4>
+                                <p>Hatfield Resident</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="testimonial-card">
+                        <div class="testimonial-content">
+                            <p>"The real-time map feature is incredible. I can see what's happening around me and plan my routes safely. It's peace of mind for my family."</p>
+                        </div>
+                        <div class="testimonial-author">
+                            <img src="Image1.jpg" alt="John D.">
+                            <div class="author-info">
+                                <h4>John D.</h4>
+                                <p>Sunnyside Community</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="testimonial-card">
+                        <div class="testimonial-content">
+                            <p>"As a neighborhood watch coordinator, NotiZAR has revolutionized how we coordinate patrols and share information. Response times have improved dramatically."</p>
+                        </div>
+                        <div class="testimonial-author">
+                            <img src="Image1.jpg" alt="David K.">
+                            <div class="author-info">
+                                <h4>David K.</h4>
+                                <p>Watch Group Leader</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="cta-section">
+            <div class="container">
+                <div class="cta-content">
+                    <h2>Ready to Protect Your Community?</h2>
+                    <p>Join thousands of Tshwane residents who trust NotiZAR for their safety and security needs.</p>
+                    <div class="cta-buttons">
+                        <button id="cta-login-btn" class="btn-primary">Login to Your Account</button>
+                        <button id="cta-signup-btn" class="btn-secondary">Sign Up Now</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Emergency Report Modal -->
+    <div id="emergency-report-modal" class="emergency-modal hidden">
+        <div class="emergency-modal-content">
+            <div class="emergency-modal-header">
+                <h2>Emergency Report</h2>
+                <button id="close-emergency-modal" class="close-btn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="emergency-modal-body">
+                <div class="emergency-contact-cards">
+                    <div class="contact-card emergency">
+                        <i class="fas fa-phone-alt"></i>
+                        <h3>Emergency Services</h3>
+                        <p class="phone-number">10177</p>
+                        <p class="contact-description">For immediate danger or crimes in progress</p>
+                    </div>
+                    <div class="contact-card notizar">
+                        <i class="fas fa-shield-alt"></i>
+                        <h3>NotiZAR Hotline</h3>
+                        <p class="phone-number">012 358 9999</p>
+                        <p class="contact-description">24/7 community protection line</p>
+                    </div>
+                </div>
+                
+                <div class="quick-report-form">
+                    <h4>Quick Anonymous Report</h4>
+                    <form id="anonymous-report-form">
+                        <div class="form-group">
+                            <label>Incident Type</label>
+                            <select id="emergency-type" required>
+                                <option value="">Select incident type</option>
+                                <option value="cable-theft">Cable Theft in Progress</option>
+                                <option value="suspicious-activity">Suspicious Activity</option>
+                                <option value="vandalism">Vandalism</option>
+                                <option value="other">Other Emergency</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Location</label>
+                            <input type="text" id="emergency-location" placeholder="Enter location or address" required>
+                            <button type="button" id="emergency-get-location" class="location-btn">
+                                <i class="fas fa-map-marker-alt"></i> Use My Location
+                            </button>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea id="emergency-description" placeholder="Brief description of the emergency" required></textarea>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn-emergency">
+                                <i class="fas fa-paper-plane"></i> Send Emergency Report
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Login Page -->
-    <div id="login-page" class="login-container">
+    <div id="login-page" class="login-container hidden">
+        <button class="back-to-home">
+            <i class="fas fa-arrow-left"></i> Back to Home
+        </button>
         <div class="login-card">
             <div class="login-logo">
                 <div class="login-logo-icon">
@@ -196,34 +477,71 @@
                 </div>
                 
                 <button type="submit" class="login-btn">Sign In</button>
+                
+                <div class="login-links">
+                    <a href="#">Forgot Password?</a>
+                    <a href="#">Create Account</a>
+                </div>
             </form>
         </div>
     </div>
 
-    <script>
-        // Login functionality
-        document.getElementById('login-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            const errorDiv = document.getElementById('login-error');
-            
-            // Static credentials
-            if ((username === 'user' && password === 'user') || (username === 'admin' && password === 'admin')) {
-                errorDiv.style.display = 'none';
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <!-- In the footer section -->
+                    <div class="footer-logo">
+                        <img src="Picture1.png" alt="NotiZAR Logo" style="width: 40px; height: auto;">
+                        <h3>NotiZAR</h3>
+                    </div>
+                    <p>Protecting Tshwane communities through technology and collaboration.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-facebook"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
                 
-                if (username === 'admin') {
-                    // Redirect to admin page
-                    window.location.href = "WebApp/Admin/Admin.html";
-                } else {
-                    // Redirect to user page
-                    window.location.href = "/TVH_NotiZAR/WebApp/End_User/EndUser.html";
-                }
-            } else {
-                errorDiv.style.display = 'block';
-            }
-        });
-    </script>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="#home">Home</a></li>
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#about">About</a></li>
+                        <li><a href="#how-it-works">How It Works</a></li>
+                        <li><a href="#testimonials">Testimonials</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Resources</h4>
+                    <ul>
+                        <li><a href="#">Safety Tips</a></li>
+                        <li><a href="#">Community Guidelines</a></li>
+                        <li><a href="#">Emergency Procedures</a></li>
+                        <li><a href="#">Download App</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Contact</h4>
+                    <div class="contact-info">
+                        <p><i class="fas fa-phone"></i> 012 358 9999</p>
+                        <p><i class="fas fa-envelope"></i> info@notizar.co.za</p>
+                        <p><i class="fas fa-map-marker-alt"></i> Tshwane, South Africa</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2025 NotiZAR. All rights reserved. | <a href="#">Privacy Policy</a> | <a href="#">Terms of Service</a></p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
 </body>
 </html>

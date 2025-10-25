@@ -1,424 +1,386 @@
-// script.js - Enhanced with form-to-map functionality
-let activeView = 'home';
-let map = null;
-let markers = [];
-let reports = [];
+// DOM Elements
+const loginPage = document.getElementById('login-page');
+const mainContent = document.getElementById('main-content');
+const loginForm = document.getElementById('login-form');
+const loginError = document.getElementById('login-error');
 
-// Sample data
-const recentActivity = [
-    { id: 1, type: 'sensor_alert', location: 'Hatfield Area', time: '15 minutes ago', status: 'resolved', message: 'Sensor tampering detected' },
-    { id: 2, type: 'community_report', location: 'Sunnyside', time: '1 hour ago', status: 'investigating', message: 'Suspicious vehicle spotted' }
-];
-
-const watchGroups = [
-    { name: 'Hatfield Neighbourhood Watch', members: 234, active: true },
-    { name: 'Sunnyside Community Guard', members: 187, active: true }
-];
-
-// Initialize the app
-document.addEventListener('DOMContentLoaded', () => {
-    render();
-    initializeMap();
+// Initialize everything when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded - initializing NotiZAR');
+    
+    // Initialize all functionality
+    initLoginFunctionality();
+    initEmergencyReporting();
+    initSidebar();
+    initHeaderButtons();
+    initNavigation();
+    initSmoothScrolling();
 });
 
-function navigateTo(view) {
-    activeView = view;
-    render();
-    if (view === 'map') {
-        setTimeout(initializeMap, 100);
+// Login functionality
+function initLoginFunctionality() {
+    // Main login form
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            // Static credentials
+            if ((username === 'user' && password === 'user') || (username === 'admin' && password === 'admin')) {
+                loginError.style.display = 'none';
+                
+                if (username === 'admin') {
+                    window.location.href = "WebApp/Admin/Admin.html";
+                } else {
+                    window.location.href = "/TVH_NotiZAR/WebApp/End_User/EndUser.html";
+                }
+            } else {
+                loginError.style.display = 'block';
+            }
+        });
+    }
+
+    // Back to home button
+    const backToHome = document.querySelector('.back-to-home');
+    if (backToHome) {
+        backToHome.addEventListener('click', hideLoginPage);
     }
 }
 
-function renderHeader() {
-    return `
-        <header class="header">
-            <div class="container header-content">
-                <div class="logo">
-                    <div class="logo-icon">
-                        <i data-lucide="shield" class="text-white"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-lg">NotiZAR</h1>
-                        <p class="text-sm">Community Protection</p>
-                    </div>
-                </div>
-                <nav class="nav">
-                    <button onclick="navigateTo('home')" class="btn ${activeView === 'home' ? 'btn-primary' : ''}">
-                        <i data-lucide="home"></i>Home
-                    </button>
-                    <button onclick="navigateTo('report')" class="btn ${activeView === 'report' ? 'btn-danger' : ''}">
-                        <i data-lucide="alert-triangle"></i>Report
-                    </button>
-                    <button onclick="navigateTo('map')" class="btn ${activeView === 'map' ? 'btn-primary' : ''}">
-                        <i data-lucide="map"></i>Live Map
-                    </button>
-                </nav>
-            </div>
-        </header>
-    `;
+// Show login page
+function showLoginPage() {
+    if (loginPage && mainContent) {
+        // Store current scroll position
+        const scrollY = window.scrollY;
+        
+        // Show login page and hide main content
+        loginPage.classList.remove('hidden');
+        mainContent.classList.add('hidden');
+        
+        // Add class to body to prevent scrolling
+        document.body.classList.add('login-active');
+        
+        // Reset scroll position to top
+        window.scrollTo(0, 0);
+        
+        addBackToHomeButton();
+    }
 }
 
-function renderFooter() {
-    return `
-        <footer class="footer">
-            <div class="container footer-content">
-                <div>
-                    <h3 class="text-lg">NotiZAR</h3>
-                    <p>Community Protection System</p>
-                    <div class="flex gap-sm m-md">
-                        <button class="btn btn-danger">Emergency: 10177</button>
-                        <button class="btn">Report Non-Emergency</button>
-                    </div>
-                </div>
-                <div>
-                    <h4 class="text-lg">Quick Links</h4>
-                    <div class="flex flex-col gap-sm">
-                        <a href="#" class="text-sm">Report Emergency</a>
-                        <a href="#" class="text-sm">Community Watch</a>
-                        <a href="#" class="text-sm">Safety Tips</a>
-                    </div>
-                </div>
-            </div>
-        </footer>
-    `;
+// Hide login page
+function hideLoginPage() {
+    if (loginPage && mainContent) {
+        loginPage.classList.add('hidden');
+        mainContent.classList.remove('hidden');
+        document.body.classList.remove('login-active');
+    }
 }
 
-function renderHome() {
-    return `
-        <main class="container p-lg">
-            <div class="card">
-                <h2 class="text-xl">Community Safety Dashboard</h2>
-                <p class="text-sm text-gray">Welcome back! Here's the latest from your area.</p>
-            </div>
-
-            <div class="grid grid-4">
-                <div class="card">
-                    <div class="flex-between">
-                        <div>
-                            <h3 class="text-lg">Active Incidents</h3>
-                            <p class="text-xl">${reports.filter(r => r.status === 'active').length}</p>
-                        </div>
-                        <div class="bg-light p-md rounded">
-                            <i data-lucide="alert-triangle" class="text-danger"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="flex-between">
-                        <div>
-                            <h3 class="text-lg">Reports Today</h3>
-                            <p class="text-xl">${reports.length}</p>
-                        </div>
-                        <div class="bg-light p-md rounded">
-                            <i data-lucide="clipboard" class="text-primary"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="flex-between">
-                        <div>
-                            <h3 class="text-lg">Response Time</h3>
-                            <p class="text-xl">8.4 min</p>
-                        </div>
-                        <div class="bg-light p-md rounded">
-                            <i data-lucide="clock" class="text-warning"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="flex-between">
-                        <div>
-                            <h3 class="text-lg">Prevented</h3>
-                            <p class="text-xl">14</p>
-                        </div>
-                        <div class="bg-light p-md rounded">
-                            <i data-lucide="shield-check" class="text-success"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid grid-2">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="text-lg">Recent Activity</h3>
-                    </div>
-                    <div class="flex flex-col gap-md">
-                        ${recentActivity.map(item => `
-                            <div class="flex gap-md">
-                                <div class="bg-light p-sm rounded">
-                                    <i data-lucide="${getActivityIcon(item.type)}"></i>
-                                </div>
-                                <div>
-                                    <h4 class="text-md">${item.location}</h4>
-                                    <p class="text-sm">${item.message}</p>
-                                    <span class="text-sm">${item.time}</span>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="text-lg">Community Watch</h3>
-                    </div>
-                    <div class="flex flex-col gap-md">
-                        ${watchGroups.map(group => `
-                            <div class="flex-between">
-                                <div>
-                                    <h4 class="text-md">${group.name}</h4>
-                                    <p class="text-sm">${group.members} members</p>
-                                </div>
-                                <span class="text-sm ${group.active ? 'text-success' : 'text-gray'}">
-                                    ${group.active ? 'Active' : 'Inactive'}
-                                </span>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            </div>
-        </main>
-    `;
+// Add back button to login page
+function addBackToHomeButton() {
+    const loginPage = document.getElementById('login-page');
+    if (loginPage && !loginPage.querySelector('.back-to-home')) {
+        const backButton = document.createElement('button');
+        backButton.className = 'back-to-home';
+        backButton.innerHTML = '<i class="fas fa-arrow-left"></i> Back to Home';
+        backButton.addEventListener('click', hideLoginPage);
+        loginPage.appendChild(backButton);
+    }
 }
 
-function renderReport() {
-    return `
-        <main class="container p-lg">
-            <div class="card text-center">
-                <h2 class="text-xl">Report an Incident</h2>
-                <p class="text-gray">Help keep your community safe</p>
-            </div>
+// Emergency Reporting Functions
+function initEmergencyReporting() {
+    const emergencyBtn = document.getElementById('emergency-report-btn');
+    const emergencyModal = document.getElementById('emergency-report-modal');
+    const closeModalBtn = document.getElementById('close-emergency-modal');
+    const getLocationBtn = document.getElementById('emergency-get-location');
+    const reportForm = document.getElementById('anonymous-report-form');
 
-            <div class="card">
-                <div class="bg-danger text-white p-lg rounded">
-                    <div class="flex gap-md">
-                        <i data-lucide="alert-triangle"></i>
-                        <h3 class="text-lg">Emergency Reporting</h3>
-                    </div>
-                    <p class="text-sm m-md">For immediate danger, call emergency services first</p>
-                </div>
+    if (!emergencyBtn || !emergencyModal) {
+        console.log('Emergency reporting elements not found');
+        return;
+    }
 
-                <form id="reportForm" class="p-lg">
-                    <div class="form-group">
-                        <label class="form-label">Incident Type</label>
-                        <select class="form-input" id="reportType" required>
-                            <option value="">Select type</option>
-                            <option value="suspicious">Suspicious Activity</option>
-                            <option value="theft">Attempted Cable Theft</option>
-                            <option value="vandalism">Vandalism</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Location</label>
-                        <div class="flex gap-sm">
-                            <input type="text" class="form-input" id="location" placeholder="Enter location" required>
-                            <button type="button" class="btn" onclick="getCurrentLocation()">
-                                <i data-lucide="map-pin"></i>Use My Location
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Description</label>
-                        <textarea class="form-input" id="description" rows="4" placeholder="Describe what you saw" required></textarea>
-                    </div>
-
-                    <button type="submit" class="btn btn-danger w-full">
-                        <i data-lucide="send"></i>Submit Report
-                    </button>
-                </form>
-            </div>
-
-            ${reports.length > 0 ? `
-                <div class="card">
-                    <h3 class="text-lg">Your Recent Reports</h3>
-                    <div class="flex flex-col gap-md">
-                        ${reports.map(report => `
-                            <div class="flex-between">
-                                <div>
-                                    <h4 class="text-md">${report.type}</h4>
-                                    <p class="text-sm">${report.location}</p>
-                                </div>
-                                <span class="text-sm">${report.time}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            ` : ''}
-        </main>
-    `;
-}
-
-function renderMap() {
-    const activeReports = reports.filter(r => r.status === 'active');
-    
-    return `
-        <main class="container p-lg">
-            <div class="card">
-                <h2 class="text-xl">Live Monitoring Map</h2>
-                <p class="text-gray">Real-time view of incidents in your area</p>
-            </div>
-
-            <div class="card">
-                <div class="flex-between">
-                    <h3 class="text-lg">Tshwane Community Map</h3>
-                    <div class="flex gap-sm">
-                        <span class="bg-light p-sm rounded text-sm">Reports: ${reports.length}</span>
-                        <span class="bg-light p-sm rounded text-sm">Active: ${activeReports.length}</span>
-                    </div>
-                </div>
-
-                <div id="map" class="map-container"></div>
-
-                <div class="grid grid-3">
-                    <div class="text-center">
-                        <div class="bg-light p-md rounded">
-                            <i data-lucide="alert-circle" class="text-danger"></i>
-                        </div>
-                        <h4 class="text-md">Active Incidents</h4>
-                        <p class="text-xl">${activeReports.length}</p>
-                    </div>
-
-                    <div class="text-center">
-                        <div class="bg-light p-md rounded">
-                            <i data-lucide="users" class="text-primary"></i>
-                        </div>
-                        <h4 class="text-md">Watch Groups</h4>
-                        <p class="text-xl">${watchGroups.length}</p>
-                    </div>
-
-                    <div class="text-center">
-                        <div class="bg-light p-md rounded">
-                            <i data-lucide="shield" class="text-success"></i>
-                        </div>
-                        <h4 class="text-md">Prevented</h4>
-                        <p class="text-xl">14</p>
-                    </div>
-                </div>
-            </div>
-        </main>
-    `;
-}
-
-function initializeMap() {
-    const mapElement = document.getElementById('map');
-    if (!mapElement || map) return;
-
-    map = L.map('map').setView([-25.7479, 28.2293], 13);
-    
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
-
-    // Add existing reports to map
-    reports.forEach(report => {
-        addMarkerToMap(report);
+    // Show emergency modal
+    emergencyBtn.addEventListener('click', () => {
+        emergencyModal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
     });
+
+    // Close emergency modal
+    closeModalBtn.addEventListener('click', () => {
+        emergencyModal.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+    });
+
+    // Close modal when clicking outside
+    emergencyModal.addEventListener('click', (e) => {
+        if (e.target === emergencyModal) {
+            emergencyModal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+    });
+
+    // Get current location
+    if (getLocationBtn) {
+        getLocationBtn.addEventListener('click', getEmergencyLocation);
+    }
+
+    // Handle form submission
+    if (reportForm) {
+        reportForm.addEventListener('submit', handleEmergencyReport);
+    }
 }
 
-function addMarkerToMap(report) {
-    if (!map) return;
-
-    // Generate random coordinates near Pretoria for demo
-    const lat = -25.7479 + (Math.random() - 0.5) * 0.1;
-    const lng = 28.2293 + (Math.random() - 0.5) * 0.1;
-
-    const marker = L.marker([lat, lng]).addTo(map);
-    marker.bindPopup(`
-        <strong>${report.type}</strong><br>
-        ${report.location}<br>
-        <small>${report.time}</small>
-    `);
-    
-    markers.push(marker);
-}
-
-function getCurrentLocation() {
-    const locationInput = document.getElementById('location');
-    
+function getEmergencyLocation() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (position) => {
-                const lat = position.coords.latitude.toFixed(4);
-                const lng = position.coords.longitude.toFixed(4);
-                locationInput.value = `Nearby (${lat}, ${lng})`;
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                const locationInput = document.getElementById('emergency-location');
+                if (locationInput) {
+                    locationInput.value = `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
+                }
+                showNotification('Location obtained successfully!', 'success');
             },
-            () => {
-                locationInput.value = 'Hatfield, Pretoria'; // Fallback
+            (error) => {
+                console.error('Error getting location:', error);
+                showNotification('Unable to get location. Please enter manually.', 'error');
             }
         );
     } else {
-        locationInput.value = 'Hatfield, Pretoria'; // Fallback
+        showNotification('Geolocation not supported.', 'error');
     }
 }
 
-function handleReportSubmit(event) {
-    event.preventDefault();
+function handleEmergencyReport(e) {
+    e.preventDefault();
     
-    const formData = new FormData(event.target);
-    const report = {
-        type: document.getElementById('reportType').value,
-        location: document.getElementById('location').value,
-        description: document.getElementById('description').value,
-        status: 'active',
-        time: 'Just now',
-        id: Date.now()
-    };
-
-    reports.unshift(report); // Add to beginning of array
-    addMarkerToMap(report);
+    const type = document.getElementById('emergency-type').value;
+    const location = document.getElementById('emergency-location').value;
+    const description = document.getElementById('emergency-description').value;
+    
+    if (!type || !location || !description) {
+        showNotification('Please fill in all fields.', 'error');
+        return;
+    }
+    
+    // Simulate sending emergency report
+    console.log('Emergency Report:', { type, location, description });
     
     // Show success message
-    alert('Report submitted successfully!');
-    event.target.reset();
+    showNotification('Emergency report sent! Authorities have been notified.', 'success');
     
-    // Update dashboard if on home view
-    if (activeView === 'home') {
-        render();
+    // Close modal and reset form
+    const emergencyModal = document.getElementById('emergency-report-modal');
+    const reportForm = document.getElementById('anonymous-report-form');
+    
+    if (emergencyModal) emergencyModal.classList.add('hidden');
+    document.body.style.overflow = 'auto';
+    if (reportForm) reportForm.reset();
+}
+
+// Sidebar functionality
+function initSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const sidebarOverlay = document.querySelector('.sidebar-overlay');
+    const sidebarToggle = document.querySelector('.sidebar-toggle');
+    const sidebarClose = document.querySelector('.sidebar-close');
+    const sidebarLinks = document.querySelectorAll('.sidebar-menu a');
+
+    if (!sidebar || !sidebarToggle) {
+        console.log('Sidebar elements not found');
+        return;
+    }
+
+    // Open sidebar
+    sidebarToggle.addEventListener('click', () => {
+        sidebar.classList.add('active');
+        sidebarOverlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    });
+
+    // Close sidebar
+    function closeSidebar() {
+        sidebar.classList.remove('active');
+        if (sidebarOverlay) sidebarOverlay.classList.remove('active');
+        document.body.style.overflow = 'auto';
+    }
+
+    if (sidebarClose) {
+        sidebarClose.addEventListener('click', closeSidebar);
+    }
+
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', closeSidebar);
+    }
+
+    // Close sidebar when clicking on links
+    sidebarLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            const href = link.getAttribute('href');
+            
+            if (link.classList.contains('login-sidebar-btn')) {
+                e.preventDefault();
+                closeSidebar();
+                showLoginPage();
+            } else if (link.classList.contains('report-sidebar-btn')) {
+                e.preventDefault();
+                closeSidebar();
+                showEmergencyModal();
+            } else if (href && href.startsWith('#')) {
+                // Internal link - close sidebar and scroll
+                e.preventDefault();
+                closeSidebar();
+                const targetElement = document.querySelector(href);
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                }
+            } else {
+                closeSidebar();
+            }
+        });
+    });
+}
+
+// Show emergency modal function
+function showEmergencyModal() {
+    const emergencyModal = document.getElementById('emergency-report-modal');
+    if (emergencyModal) {
+        emergencyModal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
     }
 }
 
-function getActivityIcon(type) {
-    const icons = {
-        sensor_alert: 'radio',
-        community_report: 'users',
-        prevention: 'shield-check'
-    };
-    return icons[type] || 'alert-circle';
+// Header buttons functionality
+function initHeaderButtons() {
+    const headerLoginBtn = document.getElementById('header-login-btn');
+    const headerReportBtn = document.getElementById('header-report-btn');
+    const getStartedBtn = document.getElementById('get-started-btn');
+    const learnMoreBtn = document.getElementById('learn-more-btn');
+    const ctaLoginBtn = document.getElementById('cta-login-btn');
+    const ctaSignupBtn = document.getElementById('cta-signup-btn');
+
+    if (headerLoginBtn) {
+        headerLoginBtn.addEventListener('click', showLoginPage);
+    }
+
+    if (headerReportBtn) {
+        headerReportBtn.addEventListener('click', showEmergencyModal);
+    }
+
+    if (getStartedBtn) {
+        getStartedBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            showLoginPage();
+        });
+    }
+
+    if (learnMoreBtn) {
+        learnMoreBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const featuresSection = document.getElementById('features');
+            if (featuresSection) {
+                featuresSection.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    }
+
+    if (ctaLoginBtn) {
+        ctaLoginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            showLoginPage();
+        });
+    }
+
+    if (ctaSignupBtn) {
+        ctaSignupBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            showLoginPage();
+        });
+    }
 }
 
-function render() {
-    const app = document.getElementById('app');
-    app.innerHTML = renderHeader();
-    
-    switch(activeView) {
-        case 'home':
-            app.innerHTML += renderHome();
-            break;
-        case 'report':
-            app.innerHTML += renderReport();
-            setTimeout(() => {
-                document.getElementById('reportForm').addEventListener('submit', handleReportSubmit);
-            }, 100);
-            break;
-        case 'map':
-            app.innerHTML += renderMap();
-            setTimeout(initializeMap, 100);
-            break;
-        default:
-            app.innerHTML += renderHome();
+// Navigation functionality
+function initNavigation() {
+    const navLinks = document.querySelectorAll('.nav-link');
+    const sections = document.querySelectorAll('section[id]');
+
+    function updateActiveNav() {
+        let current = '';
+        const scrollPos = window.scrollY + 100;
+
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop;
+            const sectionHeight = section.clientHeight;
+            
+            if (scrollPos >= sectionTop && scrollPos < sectionTop + sectionHeight) {
+                current = section.getAttribute('id');
+            }
+        });
+
+        navLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href') === `#${current}`) {
+                link.classList.add('active');
+            }
+        });
     }
+
+    window.addEventListener('scroll', updateActiveNav);
+    window.addEventListener('load', updateActiveNav);
+}
+
+// Smooth scrolling
+function initSmoothScrolling() {
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const targetId = this.getAttribute('href');
+            if (targetId === '#') return;
+            
+            const targetElement = document.querySelector(targetId);
+            if (targetElement) {
+                window.scrollTo({
+                    top: targetElement.offsetTop - 80,
+                    behavior: 'smooth'
+                });
+            }
+        });
+    });
+}
+
+// Notification system
+function showNotification(message, type) {
+    // Remove existing notifications
+    const existingNotifications = document.querySelectorAll('.notification');
+    existingNotifications.forEach(notification => notification.remove());
+
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+        <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+        <span>${message}</span>
+    `;
     
-    app.innerHTML += renderFooter();
+    document.body.appendChild(notification);
     
-    // Initialize icons
-    if (window.lucide) {
-        lucide.createIcons();
-    }
+    // Remove notification after 5 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 5000);
+}
+
+// Initialize Lucide icons
+if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
 }
