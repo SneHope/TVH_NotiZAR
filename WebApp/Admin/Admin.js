@@ -92,7 +92,8 @@
                 status: 'live',
                 type: 'public',
                 lastActivity: '5 minutes ago',
-                recording: true
+                recording: true,
+                videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1'
             },
             {
                 id: 2,
@@ -102,7 +103,8 @@
                 status: 'recording',
                 type: 'infrastructure',
                 lastActivity: '12 minutes ago',
-                recording: true
+                recording: true,
+                videoUrl: 'https://www.youtube.com/embed/L_jWHffIx5E?autoplay=1&mute=1'
             },
             {
                 id: 3,
@@ -112,7 +114,8 @@
                 status: 'offline',
                 type: 'public',
                 lastActivity: '2 hours ago',
-                recording: false
+                recording: false,
+                videoUrl: null
             },
             {
                 id: 4,
@@ -122,7 +125,8 @@
                 status: 'live',
                 type: 'community',
                 lastActivity: 'Just now',
-                recording: true
+                recording: true,
+                videoUrl: 'https://www.youtube.com/embed/aqz-KE-bpKQ?autoplay=1&mute=1'
             },
             {
                 id: 5,
@@ -132,7 +136,8 @@
                 status: 'live',
                 type: 'traffic',
                 lastActivity: '3 minutes ago',
-                recording: true
+                recording: true,
+                videoUrl: 'https://www.youtube.com/embed/i_y-2uTWtKk?autoplay=1&mute=1'
             },
             {
                 id: 6,
@@ -142,7 +147,8 @@
                 status: 'recording',
                 type: 'commercial',
                 lastActivity: '8 minutes ago',
-                recording: true
+                recording: true,
+                videoUrl: 'https://www.youtube.com/embed/p2lYr3vM_1w?autoplay=1&mute=1'
             }
         ];
 
@@ -237,7 +243,7 @@
                         <div class="flex justify-between items-start">
                             <div>
                                 <h3 class="text-lg font-semibold text-gray-700">Active Incidents</h3>
-                                <p class="text-3xl font-bold text-gray-900">2</p>
+                                <p class="text-3xl font-bold text-gray-900" id="activeIncidentCount">${recentIncidents.filter(i => i.status === 'investigating').length}</p>
                             </div>
                             <div class="bg-red-100 p-3 rounded-lg">
                                 <i class="fas fa-exclamation-triangle text-red-600"></i>
@@ -1048,13 +1054,25 @@
                     <div class="video-surveillance-container">
                         ${videoCameras.map(camera => `
                             <div class="video-card">
-                                <div class="video-placeholder">
-                                    <div style="text-align: center;">
-                                        <i class="fas fa-video text-3xl text-gray-400 mb-2"></i>
-                                        <p>${camera.name}</p>
-                                        <div class="video-status ${camera.status === 'live' ? 'status-live' : camera.status === 'recording' ? 'status-recording' : 'status-offline'}">
-                                            ${camera.status.toUpperCase()}
+                                <div class="video-placeholder" id="video-${camera.id}">
+                                    ${camera.videoUrl && camera.status !== 'offline' ? `
+                                        <iframe
+                                            width="100%"
+                                            height="100%"
+                                            src="${camera.videoUrl}"
+                                            frameborder="0"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            allowfullscreen
+                                            style="border-radius: 8px;">
+                                        </iframe>
+                                    ` : `
+                                        <div style="text-align: center;">
+                                            <i class="fas fa-video text-3xl text-gray-400 mb-2"></i>
+                                            <p>${camera.status === 'offline' ? 'Camera Offline' : camera.name}</p>
                                         </div>
+                                    `}
+                                    <div class="video-status ${camera.status === 'live' ? 'status-live' : camera.status === 'recording' ? 'status-recording' : 'status-offline'}" style="position: absolute; top: 10px; right: 10px;">
+                                        ${camera.status.toUpperCase()}
                                     </div>
                                 </div>
                                 <div class="video-info">
@@ -1062,11 +1080,11 @@
                                     <p class="text-sm text-gray-600 mt-1">${camera.location}</p>
                                     <p class="text-xs text-gray-500 mt-2">Last activity: ${camera.lastActivity}</p>
                                     <div class="video-controls">
-                                        <button class="btn-play">
+                                        <button class="btn-play" onclick="playVideo(${camera.id})">
                                             <i class="fas fa-play mr-1"></i>
-                                            View Live
+                                            ${camera.status === 'offline' ? 'Offline' : 'Viewing'}
                                         </button>
-                                        <button class="btn-fullscreen">
+                                        <button class="btn-fullscreen" onclick="fullscreenVideo(${camera.id})" ${camera.status === 'offline' ? 'disabled' : ''}>
                                             <i class="fas fa-expand mr-1"></i>
                                             Fullscreen
                                         </button>
@@ -1570,6 +1588,29 @@
             // Auto-initialize the admin page
             initializeAdminPage();
         }
+        function playVideo(cameraId) {
+            const camera = videoCameras.find(c => c.id === cameraId);
+            if (camera && camera.videoUrl && camera.status !== 'offline') {
+                showNotification(`Now viewing ${camera.name}`, 'success');
+            } else {
+                showNotification('Camera is offline', 'error');
+            }
+        }
+
+        function fullscreenVideo(cameraId) {
+            const videoContainer = document.getElementById(`video-${cameraId}`);
+            const iframe = videoContainer.querySelector('iframe');
+            if (iframe) {
+                if (iframe.requestFullscreen) {
+                    iframe.requestFullscreen();
+                } else if (iframe.webkitRequestFullscreen) {
+                    iframe.webkitRequestFullscreen();
+                } else if (iframe.msRequestFullscreen) {
+                    iframe.msRequestFullscreen();
+                }
+            }
+        }
+
         // Auto-render the home page on load
         render();
         //
