@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <link rel="stylesheet" href="EndUserStyle.css">
+    <script type="module" src="../../shared/incidentsManager.js"></script>
 
 </head>
 <body>
@@ -35,13 +36,17 @@
         <!-- Footer will be inserted here -->
     </div>
 
-    <script>
+    <script type="module">
+        import { supabase, submitIncident, uploadIncidentImage, getActiveIncidents, getIncidentById, subscribeToIncidents, showNotification } from '../../shared/incidentsManager.js';
+
         // State management
         let activeView = 'home';
         let mapInstance = null;
         let mapMarkers = [];
         let charts = {};
         let reportIdCounter = 1000;
+        let activeIncidentsData = [];
+        let incidentsSubscription = null;
         
         // Data
         const recentActivity = [
@@ -129,7 +134,7 @@
                 type: 'public',
                 lastActivity: '5 minutes ago',
                 recording: true,
-                videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1'
+                videoUrl: 'https://www.youtube.com/embed/Cwkej79U3ek?autoplay=1&mute=1'
             },
             {
                 id: 2,
@@ -140,7 +145,7 @@
                 type: 'infrastructure',
                 lastActivity: '12 minutes ago',
                 recording: true,
-                videoUrl: 'https://www.youtube.com/embed/L_jWHffIx5E?autoplay=1&mute=1'
+                videoUrl: 'https://www.youtube.com/embed/6bqBsHSwPgw?autoplay=1&mute=1'
             },
             {
                 id: 3,
@@ -162,7 +167,7 @@
                 type: 'community',
                 lastActivity: 'Just now',
                 recording: true,
-                videoUrl: 'https://www.youtube.com/embed/aqz-KE-bpKQ?autoplay=1&mute=1'
+                videoUrl: 'https://www.youtube.com/embed/19KhpykhnMQ?autoplay=1&mute=1'
             },
             {
                 id: 5,
@@ -173,7 +178,7 @@
                 type: 'traffic',
                 lastActivity: '3 minutes ago',
                 recording: true,
-                videoUrl: 'https://www.youtube.com/embed/i_y-2uTWtKk?autoplay=1&mute=1'
+                videoUrl: 'https://www.youtube.com/embed/sQDX38aLCMw?autoplay=1&mute=1'
             },
             {
                 id: 6,
@@ -184,7 +189,7 @@
                 type: 'commercial',
                 lastActivity: '8 minutes ago',
                 recording: true,
-                videoUrl: 'https://www.youtube.com/embed/p2lYr3vM_1w?autoplay=1&mute=1'
+                videoUrl: 'https://www.youtube.com/embed/rPLJO6pQpNg?autoplay=1&mute=1'
             }
         ];
 
@@ -353,17 +358,17 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-red-600">
+                    <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-red-600 cursor-pointer hover:shadow-lg transition-shadow" onclick="showActiveIncidentsModal()">
                         <div class="flex justify-between items-start">
                             <div>
                                 <h3 class="text-lg font-semibold text-gray-700">Active Incidents</h3>
-                                <p class="text-3xl font-bold text-gray-900" id="activeIncidentCount">${recentIncidents.filter(i => i.status === 'investigating').length}</p>
+                                <p class="text-3xl font-bold text-gray-900" id="activeIncidentCount">0</p>
                             </div>
                             <div class="bg-red-100 p-3 rounded-lg">
                                 <i class="fas fa-exclamation-triangle text-red-600"></i>
                             </div>
                         </div>
-                        <p class="text-sm text-gray-500 mt-2">In Hatfield & Sunnyside</p>
+                        <p class="text-sm text-gray-500 mt-2">Click to view details</p>
                     </div>
 
                     <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-600">
@@ -572,6 +577,13 @@
                                         <textarea id="descriptionInput" rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" placeholder="Describe what you saw"></textarea>
                                     </div>
 
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Photo Evidence (Optional)</label>
+                                        <input type="file" id="imageInput" accept="image/*" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                                        <p class="text-xs text-gray-500 mt-1">Upload a photo of the incident if available</p>
+                                        <div id="imagePreview" class="mt-2"></div>
+                                    </div>
+
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-1">Your Name (Optional)</label>
@@ -653,41 +665,63 @@
             }
         }
 
-        function handleReportSubmit(e) {
+        async function handleReportSubmit(e) {
             e.preventDefault();
-            
+
             const incidentType = document.getElementById('incidentType').value;
             const location = document.getElementById('locationInput').value;
             const description = document.getElementById('descriptionInput').value;
-            
+            const reporterName = document.querySelector('input[type=\"text\"]')?.value || null;
+            const reporterContact = document.querySelectorAll('input[type=\"text\"]')[1]?.value || null;
+            const isAnonymous = document.getElementById('anonymous')?.checked || false;
+            const imageFile = document.getElementById('imageInput')?.files[0];
+
             if (!location || !description) {
                 showNotification('Please fill in all required fields.', 'error');
                 return;
             }
-            
-            // Generate a new incident
-            const newIncident = {
-                id: `CG-2025-${reportIdCounter++}`,
+
+            showNotification('Submitting your report...', 'info');
+
+            let imageUrl = null;
+            if (imageFile) {
+                const uploadResult = await uploadIncidentImage(imageFile);
+                if (uploadResult.success) {
+                    imageUrl = uploadResult.url;
+                } else {
+                    console.error('Image upload failed:', uploadResult.error);
+                }
+            }
+
+            let latitude = null;
+            let longitude = null;
+            const locationMatch = location.match(/Lat:\s*([-\d.]+),\s*Lng:\s*([-\d.]+)/);
+            if (locationMatch) {
+                latitude = parseFloat(locationMatch[1]);
+                longitude = parseFloat(locationMatch[2]);
+            }
+
+            const result = await submitIncident({
                 type: incidentType,
                 location: location,
-                status: 'investigating',
-                priority: 'medium',
-                timestamp: new Date().toLocaleString(),
-                responseTime: 'Pending',
-                coordinates: [-25.74 + Math.random() * 0.05, 28.21 + Math.random() * 0.05] // Random coordinates in Pretoria area
-            };
-            
-            // Add to recent incidents
-            recentIncidents.unshift(newIncident);
-            
-            // Update charts and map
-            updateCharts();
-            updateMap();
-            
-            showNotification('Report submitted successfully! Authorities have been notified.', 'success');
-            
-            // Reset form
-            document.getElementById('reportForm').reset();
+                description: description,
+                reporterName: isAnonymous ? null : reporterName,
+                reporterContact: isAnonymous ? null : reporterContact,
+                isAnonymous: isAnonymous,
+                imageUrl: imageUrl,
+                latitude: latitude,
+                longitude: longitude,
+                priority: 'medium'
+            });
+
+            if (result.success) {
+                showNotification('Report submitted successfully! Authorities have been notified.', 'success');
+                document.getElementById('reportForm').reset();
+                document.getElementById('imagePreview').innerHTML = '';
+                await loadActiveIncidents();
+            } else {
+                showNotification('Error submitting report: ' + result.error, 'error');
+            }
         }
 
         function showNotification(message, type) {
@@ -1552,12 +1586,170 @@
             }
         }
 
+        // Load active incidents from database
+        async function loadActiveIncidents() {
+            const result = await getActiveIncidents();
+            if (result.success) {
+                activeIncidentsData = result.data;
+                updateActiveIncidentsCount();
+            }
+        }
+
+        // Update active incidents count
+        function updateActiveIncidentsCount() {
+            const countElement = document.getElementById('activeIncidentCount');
+            if (countElement) {
+                countElement.textContent = activeIncidentsData.length;
+            }
+        }
+
+        // Show active incidents modal
+        window.showActiveIncidentsModal = function() {
+            const modal = document.createElement('div');
+            modal.id = 'incidentsModal';
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;';
+
+            modal.innerHTML = `
+                <div style="background: white; border-radius: 12px; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 24px; position: relative;">
+                    <button onclick="closeModal()" style="position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 24px; cursor: pointer; color: #6b7280;">&times;</button>
+                    <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 16px; color: #111827;">Active Incidents (${activeIncidentsData.length})</h2>
+                    <div style="display: flex; flex-direction: column; gap: 16px;">
+                        ${activeIncidentsData.length === 0 ? '<p style="text-align: center; color: #6b7280; padding: 40px;">No active incidents at the moment</p>' : activeIncidentsData.map(incident => `
+                            <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; cursor: pointer; transition: box-shadow 0.2s;" onclick="showIncidentDetails('${incident.id}')">
+                                <div style="display: flex; justify-between; align-items: start; margin-bottom: 8px;">
+                                    <div>
+                                        <h3 style="font-weight: 600; color: #111827; font-size: 16px;">${incident.incident_type}</h3>
+                                        <p style="color: #6b7280; font-size: 14px; margin-top: 4px;"><i class="fas fa-map-marker-alt"></i> ${incident.location}</p>
+                                    </div>
+                                    <span style="padding: 4px 12px; border-radius: 12px; font-size: 12px; background: ${incident.status === 'active' ? '#fef2f2' : '#fefce8'}; color: ${incident.status === 'active' ? '#dc2626' : '#d97706'};">${incident.status.toUpperCase()}</span>
+                                </div>
+                                <p style="color: #374151; font-size: 14px; margin-bottom: 8px;">${incident.description.substring(0, 100)}${incident.description.length > 100 ? '...' : ''}</p>
+                                ${incident.image_url ? `<img src="${incident.image_url}" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin-top: 8px;" alt="Incident photo">` : ''}
+                                <div style="display: flex; gap: 16px; margin-top: 12px; font-size: 12px; color: #6b7280;">
+                                    <span><i class="fas fa-clock"></i> ${new Date(incident.created_at).toLocaleString()}</span>
+                                    <span><i class="fas fa-flag"></i> Priority: ${incident.priority}</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+        };
+
+        // Show incident details
+        window.showIncidentDetails = async function(incidentId) {
+            const result = await getIncidentById(incidentId);
+            if (!result.success) {
+                showNotification('Error loading incident details', 'error');
+                return;
+            }
+
+            const incident = result.data;
+            closeModal();
+
+            const modal = document.createElement('div');
+            modal.id = 'incidentsModal';
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;';
+
+            modal.innerHTML = `
+                <div style="background: white; border-radius: 12px; max-width: 700px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 24px; position: relative;">
+                    <button onclick="closeModal()" style="position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 24px; cursor: pointer; color: #6b7280;">&times;</button>
+                    <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 16px; color: #111827;">Incident Details</h2>
+
+                    <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <p style="color: #6b7280; font-size: 12px; margin-bottom: 4px;">Status</p>
+                                <span style="padding: 4px 12px; border-radius: 12px; font-size: 14px; background: ${incident.status === 'active' ? '#fef2f2' : '#fefce8'}; color: ${incident.status === 'active' ? '#dc2626' : '#d97706'}; display: inline-block;">${incident.status.toUpperCase()}</span>
+                            </div>
+                            <div>
+                                <p style="color: #6b7280; font-size: 12px; margin-bottom: 4px;">Priority</p>
+                                <p style="font-weight: 600; text-transform: capitalize;">${incident.priority}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 16px;">
+                        <h3 style="font-weight: 600; margin-bottom: 8px; color: #111827;">Type</h3>
+                        <p style="color: #374151;">${incident.incident_type}</p>
+                    </div>
+
+                    <div style="margin-bottom: 16px;">
+                        <h3 style="font-weight: 600; margin-bottom: 8px; color: #111827;">Location</h3>
+                        <p style="color: #374151;"><i class="fas fa-map-marker-alt"></i> ${incident.location}</p>
+                    </div>
+
+                    <div style="margin-bottom: 16px;">
+                        <h3 style="font-weight: 600; margin-bottom: 8px; color: #111827;">Description</h3>
+                        <p style="color: #374151; line-height: 1.6;">${incident.description}</p>
+                    </div>
+
+                    ${incident.image_url ? `
+                        <div style="margin-bottom: 16px;">
+                            <h3 style="font-weight: 600; margin-bottom: 8px; color: #111827;">Photo Evidence</h3>
+                            <img src="${incident.image_url}" style="width: 100%; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" alt="Incident photo">
+                        </div>
+                    ` : ''}
+
+                    <div style="margin-bottom: 16px;">
+                        <h3 style="font-weight: 600; margin-bottom: 8px; color: #111827;">Reported</h3>
+                        <p style="color: #374151;"><i class="fas fa-clock"></i> ${new Date(incident.created_at).toLocaleString()}</p>
+                    </div>
+
+                    ${!incident.is_anonymous && incident.reporter_name ? `
+                        <div style="margin-bottom: 16px;">
+                            <h3 style="font-weight: 600; margin-bottom: 8px; color: #111827;">Reporter</h3>
+                            <p style="color: #374151;">${incident.reporter_name}</p>
+                            ${incident.reporter_contact ? `<p style="color: #6b7280; font-size: 14px;">${incident.reporter_contact}</p>` : ''}
+                        </div>
+                    ` : '<div style="background: #fef3c7; padding: 12px; border-radius: 8px; margin-bottom: 16px;"><p style="color: #92400e; font-size: 14px;"><i class="fas fa-user-secret"></i> This report was submitted anonymously</p></div>'}
+
+                    <button onclick="closeModal(); showActiveIncidentsModal();" style="width: 100%; background: #2563eb; color: white; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Back to All Incidents</button>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+        };
+
+        // Close modal
+        window.closeModal = function() {
+            const modal = document.getElementById('incidentsModal');
+            if (modal) modal.remove();
+        };
+
+        // Image preview
+        document.addEventListener('change', (e) => {
+            if (e.target.id === 'imageInput') {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        document.getElementById('imagePreview').innerHTML = `
+                            <img src="${event.target.result}" style="max-width: 200px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" alt="Preview">
+                        `;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        });
+
         // Initialize the app
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             render();
 
             // Close sidebar when clicking on overlay
             document.querySelector('.sidebar-overlay').addEventListener('click', closeSidebar);
+
+            // Load active incidents
+            await loadActiveIncidents();
+
+            // Subscribe to real-time updates
+            incidentsSubscription = subscribeToIncidents((payload) => {
+                console.log('Incident update:', payload);
+                loadActiveIncidents();
+            });
         });
         
     </script>

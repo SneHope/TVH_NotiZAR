@@ -1,6 +1,8 @@
-
+        import { supabase, submitIncident, uploadIncidentImage, getActiveIncidents, getIncidentById, subscribeToIncidents, showNotification } from '../../shared/incidentsManager.js';
 
         // Admin page functionality
+        let activeIncidentsData = [];
+        let incidentsSubscription = null;
         let activeView = 'home';
         let mapInstance = null;
         let mapMarkers = [];
@@ -173,11 +175,37 @@
             { id: 2, title: 'Community Meeting', content: 'Join us for the monthly community safety meeting on January 28th at the Hatfield Community Center.', author: 'Admin', timestamp: '2025-01-18 14:15' }
         ];
 
-        function initializeAdminPage() {
+        async function initializeAdminPage() {
             render();
-            
+
             // Close sidebar when clicking on overlay
             document.querySelector('.sidebar-overlay').addEventListener('click', closeSidebar);
+
+            // Load active incidents
+            await loadActiveIncidents();
+
+            // Subscribe to real-time updates
+            incidentsSubscription = subscribeToIncidents((payload) => {
+                console.log('Incident update:', payload);
+                loadActiveIncidents();
+            });
+        }
+
+        // Load active incidents from database
+        async function loadActiveIncidents() {
+            const result = await getActiveIncidents();
+            if (result.success) {
+                activeIncidentsData = result.data;
+                updateActiveIncidentsCount();
+            }
+        }
+
+        // Update active incidents count
+        function updateActiveIncidentsCount() {
+            const countElement = document.getElementById('activeIncidentCount');
+            if (countElement) {
+                countElement.textContent = activeIncidentsData.length;
+            }
         }
 
         // Utility functions
@@ -243,7 +271,7 @@
                         <div class="flex justify-between items-start">
                             <div>
                                 <h3 class="text-lg font-semibold text-gray-700">Active Incidents</h3>
-                                <p class="text-3xl font-bold text-gray-900" id="activeIncidentCount">${recentIncidents.filter(i => i.status === 'investigating').length}</p>
+                                <p class="text-3xl font-bold text-gray-900" id="activeIncidentCount">0</p>
                             </div>
                             <div class="bg-red-100 p-3 rounded-lg">
                                 <i class="fas fa-exclamation-triangle text-red-600"></i>
@@ -1612,5 +1640,5 @@
         }
 
         // Auto-render the home page on load
-        render();
+        initializeAdminPage();
         //
